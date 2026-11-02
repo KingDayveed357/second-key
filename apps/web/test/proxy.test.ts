@@ -65,6 +65,43 @@ describe("proxy allowlist", () => {
     expect(keyFor("console")).toBeUndefined(); // caller answers 503, never forwards keyless
   });
 
+  // ADR-0020: the payer's credential never reaches the guardian's channel or a guardian credential.
+  test.each([
+    ["GET", "/v1/me/protection", "payer"],
+    ["POST", "/v1/me/protection/threshold", "payer"],
+    ["POST", "/v1/me/protection/guardian/revoke", "payer"],
+    ["POST", "/v1/me/guardians", "payer"],
+    ["POST", "/v1/me/holds/pur_1/notify", "payer"],
+    ["POST", "/v1/me/demo/transfers/scam_transfer", "payer"],
+    ["GET", "/v1/holds/pur_1", "payer"],
+    ["GET", "/v1/demo/inboxes/SK-ABCD-EF23/messages", "inbox"],
+    ["POST", "/v1/demo/inboxes/SK-ABCD-EF23/messages/ntf_1/open", "inbox"],
+    ["POST", "/v1/holds/pur_1/view", "token"],
+    ["POST", "/v1/holds/pur_1/verification", "token"],
+  ])("Second Key: %s %s → %s", (method, path, role) => {
+    expect(match(method, path, false)?.role).toBe(role);
+  });
+
+  test.each([
+    ["GET", "/v1/holds/pur_1/verification"], // credentials never travel in a URL
+    ["POST", "/v1/demo/payers"], // the payer key is minted server-side only (/api/sk/session)
+    ["GET", "/v1/demo/inboxes/not-an-address/messages"],
+    ["POST", "/v1/admin/payee-history"],
+  ])("Second Key: %s %s is not forwarded", (method, path) => {
+    expect(match(method, path, false)).toBeNull();
+  });
+
+  test("inbox routes carry the demo key, never a payer or shopper key; payer routes never fall back to the shared shopper", () => {
+    const payerKey = `wk_${"p".repeat(32)}`;
+    expect(keyFor("inbox", payerKey, true)).toBe("wk_demo");
+    expect(keyFor("payer", payerKey)).toBe(payerKey);
+    expect(keyFor("payer", undefined)).toBeUndefined();
+    expect(keyFor("payer", "wk_shopper")).toBeUndefined();
+    expect(keyFor("shopper", payerKey, true)).toBe(payerKey);
+    expect(keyFor("shopper", undefined, true)).toBeUndefined();
+    expect(keyFor("shopper", payerKey, false)).toBe("wk_shopper");
+  });
+
   test("Render's private hostport gets a scheme", () => {
     process.env.WITNESS_API_URL = "witness-api:10000";
     expect(apiBase()).toBe("http://witness-api:10000");

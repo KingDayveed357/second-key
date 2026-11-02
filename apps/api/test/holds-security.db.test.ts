@@ -34,7 +34,7 @@ const held = async () => {
   return r.json().purchase.id as string;
 };
 const link = async (id: string) => (await app.inject({ method: "POST", url: `/v1/purchases/${id}/hold-link`, headers: bearer("shopper") })).json() as { token: string; expires_at: string };
-const view = (id: string, t: string) => app.inject({ method: "GET", url: `/v1/holds/${id}?t=${encodeURIComponent(t)}` });
+const view = (id: string, t: string) => app.inject({ method: "POST", url: `/v1/holds/${id}/view`, payload: { token: t } });
 const decide = (id: string, d: "approve" | "deny", body: unknown) => app.inject({ method: "POST", url: `/v1/holds/${id}/${d}`, payload: body as Record<string, unknown> });
 const tick = (ms: number) => {
   h.clock.now = new Date(h.clock.now.getTime() + ms);
@@ -136,6 +136,7 @@ describe("binding and refusal", () => {
     expect((await decide(id, "deny", { token: "x".repeat(129) })).statusCode).toBe(401);
     expect((await decide(id, "deny", { token: 12345678901234567890 })).statusCode).toBe(401);
     expect((await decide(id, "deny", { token: ["a".repeat(32)] })).statusCode).toBe(401);
+    // ADR-0020: credentials in a URL are never accepted, valid or not.
     expect((await app.inject({ method: "GET", url: `/v1/holds/${id}?t=${"a".repeat(32)}&t=${"b".repeat(32)}` })).statusCode).toBe(401);
     expect((await app.inject({ method: "POST", url: `/v1/holds/${id}/deny`, headers: { "content-type": "application/json" }, payload: "{not json" })).statusCode).toBe(400);
     expect((await decide("pur_doesnotexist", "deny", { token: "a".repeat(32) })).statusCode).toBe(404);

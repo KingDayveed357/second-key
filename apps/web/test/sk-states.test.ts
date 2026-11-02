@@ -40,7 +40,11 @@ describe("moneyTruth: only authorization and capture records count", () => {
 
 describe("copy helpers", () => {
   test("decider labels", () => {
-    expect(deciderOf("shopper:shp_1(link)")).toMatch(/Trusted contact/);
+    // ADR-0020: only a guardian credential is a trusted contact's decision. A pre-0020 link was issued to
+    // the account holder, so a "(link)" decision is attributed to them, not to a trusted contact.
+    expect(deciderOf("guardian:gdn_1")).toMatch(/Trusted contact/);
+    expect(deciderOf("payer:shp_1")).toMatch(/payer \(cancelled\)/);
+    expect(deciderOf("shopper:shp_1(link)")).toMatch(/Account holder, via one-time link/);
     expect(deciderOf("engine")).toMatch(/automatic/);
   });
   test("unknown tactics degrade to readable words", () => {

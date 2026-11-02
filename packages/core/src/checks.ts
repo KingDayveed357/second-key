@@ -169,6 +169,34 @@ export interface ScreenContext {
   purchasesUsed: number;
   /** Price above this multiple of the market median -> HOLD. */
   overpricedRatio?: number;
+  /**
+   * The payer's standing protection and payment history (ADR-0020), read by the engine under a lock.
+   * Absent means no profile and no history lookup (pre-0020 behaviour: the intent alone decides).
+   */
+  payer?: PayerContext;
+}
+
+export interface PayerContext {
+  /** The standing profile's threshold, or null for no threshold rule. */
+  profileThresholdCents: number | null;
+  /** True when a captured transfer (or an audited import) to this payee exists for this payer. */
+  paidBefore: boolean;
+}
+
+/**
+ * The recipient identity for payment history. It includes what the money actually goes to: the payout
+ * email when the payer confirmed one, together with the integrator's id. A known id with a new email,
+ * or a known email under a new id, is therefore a NEW payee (stricter, never weaker). Without an email
+ * the identity is the integrator's id alone, which is integrator-asserted (ADR-0020 §9).
+ */
+export function payeeKey(payee: { id: string; email?: string | undefined }): string {
+  return payee.email ? `email:${payee.email.trim().toLowerCase()}#id:${payee.id}` : `id:${payee.id}`;
+}
+
+/** Stricter wins: the lowest threshold present, or null when neither the profile nor the intent sets one. */
+export function effectiveThreshold(profile: number | null | undefined, intent: number | null | undefined): number | null {
+  const present = [profile, intent].filter((x): x is number => typeof x === "number");
+  return present.length ? Math.min(...present) : null;
 }
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -203,16 +231,18 @@ const usdLike = (cents: number, currency: string) => new Intl.NumberFormat("en-U
  * The payer's own rule (ADR-0019), deterministic: a first payment to someone new at or above the
  * threshold is held for a second look. "unknown" → HOLD; it never fails a payment and never needs AI.
  */
-export function reviewRule(policy: TransferPolicyV1): Check | null {
-  const t = policy.review_threshold_cents;
-  if (t === undefined) return null;
-  const triggered = policy.payee.first_payment && policy.amount_cents >= t;
+export function reviewRule(policy: TransferPolicyV1, payer?: PayerContext): Check | null {
+  // ADR-0020: the standing profile is authoritative; the intent can only make the rule stricter.
+  const t = effectiveThreshold(payer?.profileThresholdCents, policy.review_threshold_cents);
+  if (t === null) return null;
+  const first = policy.payee.first_payment || (payer ? !payer.paidBefore : false);
+  const triggered = first && policy.amount_cents >= t;
   return {
     id: "transfer.review_rule",
     result: triggered ? "unknown" : "pass",
     detail: triggered
       ? `the payer's rule: a second look for first payments of ${usdLike(t, policy.currency)} or more to someone new (this is ${usdLike(policy.amount_cents, policy.currency)} to ${policy.payee.name}, a first payment)`
-      : `the payer's rule (first payments of ${usdLike(t, policy.currency)} or more to someone new) doesn't apply: ${policy.payee.first_payment ? "below the threshold" : "paid before"}`,
+      : `the payer's rule (first payments of ${usdLike(t, policy.currency)} or more to someone new) doesn't apply: ${first ? "below the threshold" : "paid before"}`,
   };
 }
 
@@ -234,7 +264,7 @@ export function screenTransfer(policy: TransferPolicyV1, req: TransferRequest, c
     result: req.amount_cents === policy.amount_cents ? "pass" : "fail",
     detail: `request ${req.amount_cents} cents, confirmed ${policy.amount_cents} cents`,
   });
-  const rule = reviewRule(policy);
+  const rule = reviewRule(policy, ctx.payer);
   if (rule) checks.push(rule);
   const line: CartLine = {
     product_id: `transfer:${policy.payee.id}`,

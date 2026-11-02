@@ -5,7 +5,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { createApiKey } from "@witness/db";
-import { DEMO_PAYEE, demoPolicy, transferPolicy, transferRequest } from "@witness/engine";
+import { DEMO_PAYEE, demoPolicy, transferPolicy, transferRequest, importPayee } from "@witness/engine";
 import { FakeLlm } from "@witness/ai";
 import { buildApp } from "../src/app.ts";
 import { createHarness, type Harness } from "../../../test-support/harness.ts";
@@ -23,6 +23,8 @@ beforeAll(async () => {
   keys.shopper = (await createApiKey(h.pool, h.tenantId, `shopper:${h.shopperId}`, ["shopper"])).key;
   keys.demo = (await createApiKey(h.pool, h.tenantId, "demo", ["demo"])).key;
   keys.ops = (await createApiKey(h.pool, h.tenantId, "ops:sk", ["ops"])).key;
+  // ADR-0020: "paid before" comes from recorded history, never from the intent's assertion.
+  await importPayee(h.d, h.tenantId, h.shopperId, { id: "payee_morgan_sons" }, "test:seed");
 });
 afterAll(async () => {
   await app.close();
@@ -192,7 +194,7 @@ describe("what the Second Key screens read (blueprint §7)", () => {
   test("reviewer view carries payer, payee, purpose, the conversation and structured, grounded evidence", async () => {
     const p = (await app.inject({ method: "POST", url: "/v1/demo/scenarios/scam_transfer", headers: bearer("demo") })).json().purchase;
     const link = (await app.inject({ method: "POST", url: `/v1/purchases/${p.id}/hold-link`, headers: bearer("shopper") })).json();
-    const v = (await app.inject({ method: "GET", url: `/v1/holds/${p.id}?t=${link.token}` })).json();
+    const v = (await app.inject({ method: "POST", url: `/v1/holds/${p.id}/view`, payload: { token: link.token } })).json();
     expect(v).toMatchObject({ kind: "transfer", payee: { name: "J. Morgan", first_payment: true }, purpose: "Bail for Danny" });
     expect(typeof v.payer_name).toBe("string");
     expect(v.conversation.lines.length).toBeGreaterThan(1);
@@ -207,9 +209,11 @@ describe("what the Second Key screens read (blueprint §7)", () => {
   test("the reviewer can read PayPal's own state with the same token, and only with it", async () => {
     const p = (await app.inject({ method: "POST", url: "/v1/demo/scenarios/scam_transfer", headers: bearer("demo") })).json().purchase;
     const link = (await app.inject({ method: "POST", url: `/v1/purchases/${p.id}/hold-link`, headers: bearer("shopper") })).json();
-    const ver = await app.inject({ method: "GET", url: `/v1/holds/${p.id}/verification?t=${link.token}` });
+    const ver = await app.inject({ method: "POST", url: `/v1/holds/${p.id}/verification`, payload: { token: link.token } });
     expect(ver.json()).toMatchObject({ authorizations: [{ status: "CREATED", value: "1800.00" }], captures: [] });
-    expect((await app.inject({ method: "GET", url: `/v1/holds/${p.id}/verification?t=${"x".repeat(32)}` })).statusCode).toBe(403);
+    expect((await app.inject({ method: "POST", url: `/v1/holds/${p.id}/verification`, payload: { token: "x".repeat(32) } })).statusCode).toBe(403);
+    // ADR-0020: a credential in a URL is never accepted.
+    expect((await app.inject({ method: "GET", url: `/v1/holds/${p.id}/verification?t=${link.token}` })).statusCode).toBe(401);
     expect((await app.inject({ method: "GET", url: `/v1/holds/${p.id}/verification` })).statusCode).toBe(401);
   });
 

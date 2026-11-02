@@ -6,3 +6,4 @@ export * from "./holds.ts";
 export * from "./payouts.ts";
 export * from "./evidence.ts";
 export * from "./context.ts";
+export * from "./protection.ts";

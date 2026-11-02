@@ -150,7 +150,10 @@ export function rankEvidence<T extends { tactic: string }>(items: T[]): T[] {
 export function deciderOf(decidedBy: string | null | undefined): string {
   if (!decidedBy) return "—";
   if (decidedBy === "engine") return "Second Key (automatic screening)";
-  if (decidedBy.endsWith("(link)")) return "Trusted contact, via one-time link";
+  // ADR-0020: decisions name who made them. A guardian decides with a credential sent to their own channel.
+  if (decidedBy.startsWith("guardian:")) return "Trusted contact (second key)";
+  if (decidedBy.startsWith("payer:")) return "The payer (cancelled)";
+  if (decidedBy.endsWith("(link)")) return "Account holder, via one-time link";
   if (decidedBy.startsWith("shopper:")) return "Account holder (signed in)";
   if (decidedBy === "admin") return "Administrator";
   if (decidedBy.startsWith("executor")) return "Payment executor";

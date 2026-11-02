@@ -6,10 +6,20 @@ export interface Problem {
   detail?: string;
 }
 
-export async function api<T = any>(path: string, init: { method?: "GET" | "POST"; body?: unknown; console?: boolean } = {}): Promise<T> {
+export async function api<T = any>(
+  path: string,
+  init: { method?: "GET" | "POST"; body?: unknown; console?: boolean; asPayer?: boolean; inboxSecret?: string } = {},
+): Promise<T> {
   const res = await fetch(`/api/w${path}`, {
     method: init.method ?? "GET",
-    headers: { ...(init.body !== undefined ? { "content-type": "application/json" } : {}), ...(init.console ? { "x-witness-console": "1" } : {}) },
+    headers: {
+      ...(init.body !== undefined ? { "content-type": "application/json" } : {}),
+      ...(init.console ? { "x-witness-console": "1" } : {}),
+      // Second Key: act as this visitor's own demo payer (session cookie), not the shared demo shopper.
+      ...(init.asPayer ? { "x-sk-payer": "1" } : {}),
+      // Only the guardian's window holds this; it is sent only on inbox routes.
+      ...(init.inboxSecret ? { "x-inbox-secret": init.inboxSecret } : {}),
+    },
     ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
     cache: "no-store",
   });

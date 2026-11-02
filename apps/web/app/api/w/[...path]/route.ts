@@ -1,6 +1,6 @@
 // Allowlisted proxy to the Witness API (see lib/server/proxy.ts for the rules).
 import { cookies, headers } from "next/headers";
-import { allowCostly, apiBase, keyFor, match } from "../../../../lib/server/proxy";
+import { PAYER_COOKIE, allowCostly, apiBase, keyFor, match } from "../../../../lib/server/proxy";
 import { SESSION_COOKIE, validSession } from "../../../../lib/server/session";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,8 @@ const problem = (status: number, title: string, detail?: string, extra: Record<s
 async function forward(req: Request, ctx: { params: Promise<{ path: string[] }> }) {
   const { path: segments } = await ctx.params;
   const path = "/" + segments.map(encodeURIComponent).join("/");
-  const signedIn = validSession((await cookies()).get(SESSION_COOKIE)?.value);
+  const jar = await cookies();
+  const signedIn = validSession(jar.get(SESSION_COOKIE)?.value);
   const inConsole = signedIn && req.headers.get("x-witness-console") === "1";
   const rule = match(req.method, path, inConsole);
   if (!rule) return problem(404, "Not found");
@@ -24,8 +25,13 @@ async function forward(req: Request, ctx: { params: Promise<{ path: string[] }> 
     if (!gate.ok) return problem(429, "Slow down", `Try again in ${gate.retryAfter}s`, { "retry-after": String(gate.retryAfter) });
   }
 
-  const key = keyFor(rule.role);
+  const asPayer = req.headers.get("x-sk-payer") === "1";
+  const key = keyFor(rule.role, jar.get(PAYER_COOKIE)?.value, asPayer);
+  if ((rule.role === "payer" || (rule.role === "shopper" && asPayer)) && !key) return problem(401, "Start a session", "Open the payer demo to start");
   if (key === undefined || key === "") return problem(503, "Not configured", `This deployment has no ${rule.role} key`);
+  // The inbox secret is forwarded only on inbox routes; nothing else ever carries it.
+  const inboxSecret = rule.role === "inbox" ? req.headers.get("x-inbox-secret") : null;
+  if (rule.role === "inbox" && !inboxSecret) return problem(401, "Inbox secret required");
 
   const url = new URL(req.url);
   const target = `${apiBase()}${path}${url.search}`;
@@ -39,6 +45,7 @@ async function forward(req: Request, ctx: { params: Promise<{ path: string[] }> 
         ...(key ? { authorization: `Bearer ${key}` } : {}),
         ...(body ? { "content-type": "application/json" } : {}),
         ...(req.headers.get("idempotency-key") ? { "idempotency-key": req.headers.get("idempotency-key")! } : {}),
+        ...(inboxSecret ? { "x-inbox-secret": inboxSecret } : {}),
       },
       ...(body ? { body } : {}),
       cache: "no-store",

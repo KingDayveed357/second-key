@@ -1,7 +1,7 @@
 // Drizzle table definitions mirroring migrations/*.sql (the SQL is the source of truth;
 // integration tests exercise every table through these definitions, so drift fails loudly).
 
-import { bigint, bigserial, boolean, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { bigint, bigserial, boolean, integer, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
 
@@ -72,6 +72,8 @@ export const purchases = pgTable("purchases", {
   paypalAuthorizationId: text("paypal_authorization_id"),
   paypalCaptureId: text("paypal_capture_id"),
   authorizedAt: ts("authorized_at"),
+  /** Second Key screening snapshot (0006): which protection governed this payment when it was screened. */
+  protection: jsonb("protection"),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
@@ -191,8 +193,100 @@ export const holds = pgTable("holds", {
   autoVoidAt: ts("auto_void_at").notNull(),
   notifiedAt: ts("notified_at"),
   resolvedAt: ts("resolved_at"),
-  resolution: text("resolution", { enum: ["APPROVED", "DENIED", "TIMEOUT", "REVOKED"] }),
+  resolution: text("resolution", { enum: ["APPROVED", "DENIED", "TIMEOUT", "REVOKED", "CANCELLED"] }),
+  /** Who may approve (0006, ADR-0020): the principal, the payer's guardian, or pre-0020 behaviour. */
+  approver: text("approver", { enum: ["principal", "guardian", "legacy"] }).notNull().default("principal"),
+  guardianId: text("guardian_id"),
+  reasonClasses: text("reason_classes").array().notNull().default([]),
+  /** The one live guardian credential: SHA-256 only, bound to a guardian, minted at the channel's last hop. */
+  credentialHash: text("credential_hash"),
+  credentialGuardianId: text("credential_guardian_id"),
+  credentialExpiresAt: ts("credential_expires_at"),
+  credentialSeq: integer("credential_seq"),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lastNotifiedAt: ts("last_notified_at"),
 });
+
+/** The payer's standing protection (0006, ADR-0020). Changed only through profile_changes. */
+export const protectionProfiles = pgTable(
+  "protection_profiles",
+  {
+    tenantId: text("tenant_id").notNull(),
+    shopperId: text("shopper_id").notNull(),
+    version: integer("version").notNull().default(1),
+    thresholdCents: integer("threshold_cents"),
+    guardianId: text("guardian_id"),
+    protectionOn: boolean("protection_on").notNull().default(false),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.tenantId, t.shopperId] })],
+);
+
+export const guardians = pgTable("guardians", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull(),
+  shopperId: text("shopper_id").notNull(),
+  displayName: text("display_name").notNull(),
+  channel: text("channel", { enum: ["demo_inbox"] }).notNull(),
+  address: text("address").notNull(),
+  status: text("status", { enum: ["INVITED", "ACTIVE", "REMOVED", "REVOKED"] }).notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  activatedAt: ts("activated_at"),
+  endedAt: ts("ended_at"),
+  endedReason: text("ended_reason"),
+});
+
+export const profileChanges = pgTable("profile_changes", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull(),
+  shopperId: text("shopper_id").notNull(),
+  kind: text("kind", { enum: ["threshold", "guardian", "remove_guardian"] }).notNull(),
+  value: jsonb("value").notNull(),
+  requestedAt: ts("requested_at").notNull(),
+  effectiveAt: ts("effective_at").notNull(),
+  appliedAt: ts("applied_at"),
+  cancelledAt: ts("cancelled_at"),
+  cancelReason: text("cancel_reason"),
+});
+
+/** Transactional outbox for guardian messages. `body` never contains a credential. */
+export const notifications = pgTable("notifications", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull(),
+  guardianId: text("guardian_id").notNull(),
+  purchaseId: text("purchase_id"),
+  kind: text("kind", { enum: ["invite", "hold_review", "authority_change", "revoked"] }).notNull(),
+  seq: integer("seq").notNull().default(1),
+  body: jsonb("body").notNull().default({}),
+  status: text("status", { enum: ["PENDING", "DELIVERED", "FAILED", "SUPERSEDED"] }).notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  nextAttemptAt: ts("next_attempt_at").notNull().defaultNow(),
+  lastError: text("last_error"),
+  deliveredAt: ts("delivered_at"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+/** Demo channel standing in for a guardian's phone. Read only with its secret (hash stored). */
+export const demoInboxes = pgTable("demo_inboxes", {
+  address: text("address").primaryKey(),
+  tenantId: text("tenant_id").notNull(),
+  secretHash: text("secret_hash").notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+/** Who a payer has actually paid: written only when a transfer is CAPTURED (or by an audited import). */
+export const payeeHistory = pgTable(
+  "payee_history",
+  {
+    tenantId: text("tenant_id").notNull(),
+    shopperId: text("shopper_id").notNull(),
+    payeeKey: text("payee_key").notNull(),
+    firstPaidAt: ts("first_paid_at").notNull(),
+    purchaseId: text("purchase_id"),
+    source: text("source", { enum: ["captured", "imported", "backfill"] }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.tenantId, t.shopperId, t.payeeKey] })],
+);
 
 export const auditLog = pgTable("audit_log", {
   epoch: integer("epoch").notNull(),

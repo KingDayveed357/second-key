@@ -26,6 +26,32 @@ interface HoldView {
   concerns: { check_id: string; kind: string; detail: string; evidence: Evidence[] }[];
   conversation_source: "submitted" | "shared_after_pause" | null;
   feedback: { quote: string; note: string; at: string }[];
+  approver?: { kind: "principal" | "guardian" | "legacy"; guardian: { name: string; address: string; status: string } | null };
+  reason_classes?: string[];
+}
+
+/**
+ * The reviewer's credential (ADR-0020 §5): from the link's fragment (never sent to a server, never in a
+ * Referer), or handed over by the guardian's phone window in this tab's sessionStorage. It is removed from
+ * the address bar at once and only ever sent in a POST body.
+ */
+function takeCredential(id: string): string {
+  const key = `sk_cred:${id}`;
+  const frag = new URLSearchParams(window.location.hash.slice(1)).get("k");
+  if (frag) {
+    window.history.replaceState(null, "", `/holds/${encodeURIComponent(id)}`);
+    try {
+      sessionStorage.setItem(key, frag);
+    } catch {
+      /* memory only */
+    }
+    return frag;
+  }
+  try {
+    return sessionStorage.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
 }
 
 type Decision = "approve" | "deny";
@@ -36,17 +62,17 @@ function linkProblem(p: Partial<Problem>): { title: string; body: string } {
     case 401:
       return { title: "This page needs your link", body: "Open the link from the message you were sent." };
     case 403:
-      return { title: "This link was replaced", body: "A newer link was sent for this payment. Use the latest one." };
+      return { title: "This link isn't valid", body: "It doesn't match this payment, or a newer request replaced it. Use the latest request on your phone." };
     case 404:
       return { title: "Payment not found", body: "The link doesn't match a payment waiting for review." };
     case 410:
-      return { title: "This link has expired", body: "Links work for 30 minutes. Ask for a new one; the payment stays reserved, not sent, until it's decided or released automatically." };
+      return { title: "This request is no longer valid", body: p.detail ?? "It expired, was replaced by a newer one, or you are no longer the trusted contact for this payment. The payment stays reserved, not sent, until it's decided or released automatically." };
     default:
       return { title: "Couldn't load this payment", body: p.title ?? "Check your connection and try again." };
   }
 }
 
-export function Review({ id, token }: { id: string; token: string }) {
+export function Review({ id }: { id: string }) {
   const [hold, setHold] = useState<HoldView | null>(null);
   const [problem, setProblem] = useState<{ title: string; body: string } | null>(null);
   const [confirming, setConfirming] = useState<Decision | null>(null);
@@ -55,7 +81,7 @@ export function Review({ id, token }: { id: string; token: string }) {
   const [notice, setNotice] = useState<{ tone: "bad" | "held" | ""; title: string; body: string } | null>(null);
   const [focus, setFocus] = useState<number | null>(null);
   const [showAll, setShowAll] = useState(false);
-  const tok = useRef(token);
+  const tok = useRef("");
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const load = useCallback(async () => {
@@ -64,7 +90,7 @@ export function Review({ id, token }: { id: string; token: string }) {
       return null;
     }
     try {
-      const v = await api<HoldView>(`/v1/holds/${id}?t=${encodeURIComponent(tok.current)}`);
+      const v = await api<HoldView>(`/v1/holds/${id}/view`, { method: "POST", body: { token: tok.current } });
       setHold(v);
       return v;
     } catch (e) {
@@ -74,10 +100,9 @@ export function Review({ id, token }: { id: string; token: string }) {
   }, [id]);
 
   useEffect(() => {
-    // Keep the one-time token in memory only: remove it from the address bar and history.
-    if (token) window.history.replaceState(null, "", `/holds/${encodeURIComponent(id)}`);
+    tok.current = takeCredential(id);
     void load();
-  }, [id, token, load]);
+  }, [id, load]);
 
   // After a decision, follow the payment until PayPal has confirmed the outcome.
   const state = hold?.state;
@@ -212,7 +237,8 @@ export function Review({ id, token }: { id: string; token: string }) {
           )}
           {!s.moving && hold.amount && (
             <PayPalCheck
-              path={`/v1/holds/${id}/verification?t=${encodeURIComponent(tok.current)}`}
+              path={`/v1/holds/${id}/verification`}
+              body={{ token: tok.current }}
               amount={amount}
               refreshKey={hold.state}
               {...(hold.kind === "transfer" ? { transfer: { payee: toWhom, configured: hold.payout_configured } } : {})}
@@ -301,7 +327,12 @@ export function Review({ id, token }: { id: string; token: string }) {
               <span className="xs muted">Second Key re-checks PayPal&apos;s record, then completes the payment.</span>
             </div>
           </div>
-          {hold.link_expires_at && <span className="xs muted">This link works until {clock(hold.link_expires_at)}.</span>}
+          {hold.approver?.kind === "guardian" && (
+            <span className="xs muted">
+              Your decision is recorded as yours ({hold.approver.guardian?.name ?? "trusted contact"}). {payer} can cancel this payment, but can&apos;t approve it: only you can.
+            </span>
+          )}
+          {hold.link_expires_at && <span className="xs muted">This request works until {clock(hold.link_expires_at)}.</span>}
         </section>
       )}
 

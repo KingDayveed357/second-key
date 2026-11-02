@@ -232,7 +232,7 @@ export async function holdTimeout(d: ExecutorDeps, job: PurchaseJob): Promise<st
     const hold = (await tx.db.select().from(holds).where(eq(holds.purchaseId, p.id)).limit(1))[0];
     if (hold && hold.autoVoidAt.getTime() > nowOf(d).getTime()) return "not due yet";
     await tx.db.update(holds).set({ resolvedAt: nowOf(d), resolution: "TIMEOUT" }).where(eq(holds.purchaseId, p.id));
-    await decideVoid(d, tx, p, "HELD", ["the shopper did not approve the HOLD before the auto-void deadline"], "timeout");
+    await decideVoid(d, tx, p, "HELD", [hold?.approver === "guardian" ? "nobody approved the payment before the auto-void deadline" : "the shopper did not approve the HOLD before the auto-void deadline"], "timeout");
     return "auto-voided";
   });
 }

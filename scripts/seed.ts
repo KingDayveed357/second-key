@@ -26,6 +26,12 @@ const tenantId = newId("ten");
 const shopperId = newId("shp");
 await pool.query("INSERT INTO tenants (id, name, paypal_merchant_id) VALUES ($1, 'Witness Demo MoR', $2)", [tenantId, merchant]);
 await pool.query("INSERT INTO shoppers (id, tenant_id, display_name, vault_id) VALUES ($1, $2, 'Rose', $3)", [shopperId, tenantId, vaultId]);
+// ADR-0020: "paid before" is recorded history, never an assertion. The demo shopper has paid Morgan & Sons
+// (the contractor scenario), with and without the demo recipient email the deployment may configure.
+const recipient = process.env.SECONDKEY_DEMO_RECIPIENT_EMAIL;
+for (const key of ["id:payee_morgan_sons", ...(recipient ? [`email:${recipient.trim().toLowerCase()}#id:payee_morgan_sons`] : [])]) {
+  await pool.query("INSERT INTO payee_history (tenant_id, shopper_id, payee_key, first_paid_at, source) VALUES ($1, $2, $3, now(), 'imported') ON CONFLICT DO NOTHING", [tenantId, shopperId, key]);
+}
 
 const keys = {
   tenant_id: tenantId,

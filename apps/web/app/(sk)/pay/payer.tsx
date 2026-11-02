@@ -7,6 +7,7 @@ import { clock, deciderOf, rankEvidence, stageOf, usd, when } from "../../../lib
 import { QuoteCard, Transcript, type Conversation, type Evidence } from "../_ui/evidence";
 import { Button, Demo, Live, Notice, Pill, Rail, StatePill } from "../_ui/ui";
 import { PayPalCheck } from "../_ui/verify";
+import { ProtectionSetup, ProtectionSummary, openGuardianWindow, type ProtectionView } from "./protection";
 
 interface ScenarioInfo {
   name: string;
@@ -30,8 +31,19 @@ const CHOICES = [
   { name: "scam_transfer", label: "An urgent call", source: "Phone call (prepared transcript)" },
   { name: "benign_transfer", label: "A contractor's invoice", source: "Text messages" },
 ] as const;
-const TRUSTED = "Sarah";
 const PAYER = "Rose";
+
+/** The payer's view of a paused payment (ADR-0020): who may approve, and whether they were reached. Never a credential. */
+interface HoldInfo {
+  state: string;
+  approver: { kind: "principal" | "guardian" | "legacy"; guardian: { name: string; address: string; status: string } | null };
+  reason_classes: string[];
+  notification: { seq: number; status: string; attempts: number; last_error: string | null; at: string } | null;
+}
+
+/** One demo session per page load, even if the effect runs twice (React dev mode). */
+let session: Promise<Response> | null = null;
+const startSession = () => (session ??= fetch("/api/sk/session", { method: "POST" }));
 
 export function Payer() {
   const [scenarios, setScenarios] = useState<ScenarioInfo[] | null>(null);
@@ -39,8 +51,10 @@ export function Payer() {
   const [phase, setPhase] = useState<"compose" | "checking" | "result">("compose");
   const [purchase, setPurchase] = useState<PurchaseView | null>(null);
   const [evidence, setEvidence] = useState<EvidenceView | null>(null);
-  const [link, setLink] = useState<{ path: string; expires_at: string } | null>(null);
-  const [asking, setAsking] = useState(false);
+  const [protection, setProtection] = useState<ProtectionView | null>(null);
+  const [hold, setHold] = useState<HoldInfo | null>(null);
+  const [reminding, setReminding] = useState(false);
+  const [remindNote, setRemindNote] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [focus, setFocus] = useState<number | null>(null);
   const [err, setErr] = useState("");
@@ -55,6 +69,28 @@ export function Payer() {
   useEffect(() => {
     api<ScenarioInfo[]>("/v1/demo/scenarios").then(setScenarios, (e) => setErr(errText(e)));
   }, []);
+
+  // Each visitor plays their own Rose (ADR-0020): a session payer, then her standing protection.
+  const loadProtection = useCallback(async () => {
+    try {
+      setProtection(await api<ProtectionView>("/v1/me/protection", { asPayer: true }));
+    } catch (e) {
+      setErr(errText(e));
+    }
+  }, []);
+  useEffect(() => {
+    startSession()
+      .then(async (r) => (r.ok ? loadProtection() : setErr(`Couldn't start a demo session (${r.status})`)))
+      .catch(() => setErr("Couldn't start a demo session"));
+  }, [loadProtection]);
+  // While setting up, follow the invitation until the contact accepts on their own phone.
+  const waitingForAccept = Boolean(protection && !protection.protection_on && protection.guardians.some((g) => g.status === "INVITED"));
+  useEffect(() => {
+    if (!waitingForAccept) return;
+    const t = setInterval(() => void loadProtection(), 2000);
+    return () => clearInterval(t);
+  }, [waitingForAccept, loadProtection]);
+  const TRUSTED = protection?.guardian?.name ?? hold?.approver.guardian?.name ?? protection?.guardians.at(-1)?.name ?? "Your trusted contact";
   const info = scenarios?.find((s) => s.name === choice)?.transfer;
   const meta = CHOICES.find((c) => c.name === choice)!;
   const amount = info ? usd(info.amount_cents) : "—";
@@ -87,12 +123,27 @@ export function Payer() {
     if (purchase?.id) void loadEvidence(purchase.id);
   }, [purchase?.id, state, loadEvidence]);
 
+  // Who may approve, and whether the request reached them (delivery state only).
+  const loadHold = useCallback(async (id: string) => {
+    try {
+      setHold(await api<HoldInfo>(`/v1/holds/${id}`, { asPayer: true }));
+    } catch {
+      /* supplementary */
+    }
+  }, []);
+  useEffect(() => {
+    if (!purchase?.id || state !== "HELD") return;
+    void loadHold(purchase.id);
+    const t = setInterval(() => void loadHold(purchase.id), 3000);
+    return () => clearInterval(t);
+  }, [purchase?.id, state, loadHold]);
+
   async function send() {
     setErr("");
     setPhase("checking");
     try {
       // Sharing the conversation is the payer's choice (ADR-0019); the payer's rule applies either way.
-      const r = await api<{ purchase: PurchaseView }>(`/v1/demo/scenarios/${choice}${shareWith ? "" : "?evidence=none"}`, { method: "POST" });
+      const r = await api<{ purchase: PurchaseView }>(`/v1/me/demo/transfers/${choice}${shareWith ? "" : "?evidence=none"}`, { method: "POST", asPayer: true });
       setPurchase(r.purchase);
       setPhase("result");
       requestAnimationFrame(() => headingRef.current?.focus());
@@ -102,16 +153,19 @@ export function Payer() {
     }
   }
 
-  async function askReviewer() {
+  /** "Remind Sarah": a fresh request to her own phone. The response never contains a credential. */
+  async function remind() {
     if (!purchase) return;
-    setAsking(true);
-    setErr("");
+    setReminding(true);
+    setRemindNote("");
     try {
-      setLink(await api<{ path: string; expires_at: string }>(`/v1/purchases/${purchase.id}/hold-link`, { method: "POST" }));
+      const r = await api<{ sent_to: string }>(`/v1/me/holds/${purchase.id}/notify`, { method: "POST", asPayer: true });
+      setRemindNote(`Sent again to ${r.sent_to}.`);
+      await loadHold(purchase.id);
     } catch (e) {
-      setErr(errText(e));
+      setRemindNote(errText(e));
     } finally {
-      setAsking(false);
+      setReminding(false);
     }
   }
 
@@ -120,7 +174,7 @@ export function Payer() {
     setSharing(true);
     setErr("");
     try {
-      await api(`/v1/me/purchases/${purchase.id}/context`, { method: "POST", body: { conversation: info.conversation } });
+      await api(`/v1/me/purchases/${purchase.id}/context`, { method: "POST", body: { conversation: info.conversation }, asPayer: true });
       await loadEvidence(purchase.id);
     } catch (e) {
       setErr(errText(e));
@@ -132,7 +186,7 @@ export function Payer() {
   async function sendFeedback(quote: string) {
     if (!purchase || !note.trim()) return;
     try {
-      await api(`/v1/me/purchases/${purchase.id}/feedback`, { method: "POST", body: { quote, note } });
+      await api(`/v1/me/purchases/${purchase.id}/feedback`, { method: "POST", body: { quote, note }, asPayer: true });
       setDisputing(null);
       setNote("");
       await loadEvidence(purchase.id);
@@ -146,7 +200,7 @@ export function Payer() {
     setCancelling(true);
     setErr("");
     try {
-      const v = await api<{ state: string }>(`/v1/me/holds/${purchase.id}/cancel`, { method: "POST" });
+      const v = await api<{ state: string }>(`/v1/me/holds/${purchase.id}/cancel`, { method: "POST", asPayer: true });
       setPurchase({ ...purchase, state: v.state });
       setCancelAsk(false);
     } catch (e) {
@@ -160,7 +214,8 @@ export function Payer() {
     setPhase("compose");
     setPurchase(null);
     setEvidence(null);
-    setLink(null);
+    setHold(null);
+    setRemindNote("");
     setShowAll(false);
     setErr("");
     setDisputing(null);
@@ -173,12 +228,14 @@ export function Payer() {
   const ruleCheck = evidence?.checks.find((c) => c.check_id === "transfer.review_rule" && c.result === "unknown");
   const shared = evidence?.request.conversation ?? null;
   const disputed = new Map((evidence?.feedback ?? []).map((f) => [f.quote, f.note]));
-  const threshold = info?.review_threshold_cents ? usd(info.review_threshold_cents) : null;
+  const thresholdCents = protection?.threshold_cents ?? null;
+  const threshold = thresholdCents !== null ? usd(thresholdCents) : null;
+  const guardianHold = hold?.approver.kind === "guardian";
   const lastDecision = evidence?.decisions.at(-1);
   const stage = stageOf(state);
 
   const reviewed = Boolean(ruleCheck) || (concern ? concern.result !== "pass" : false);
-  const rail = useMemo(() => railFor(state, Boolean(link), reviewed), [state, link, reviewed]);
+  const rail = useMemo(() => railFor(state, guardianHold, reviewed, TRUSTED), [state, guardianHold, reviewed, TRUSTED]);
 
   return (
     <div className="sk-stage">
@@ -202,19 +259,16 @@ export function Payer() {
 
           {!info && !err && <p className="muted">Loading…</p>}
 
-          {info && phase !== "result" && (
+          {info && protection && !protection.protection_on && phase === "compose" && <ProtectionSetup view={protection} onChange={setProtection} />}
+
+          {info && protection?.protection_on && phase !== "result" && (
             <div className="stack-lg">
+              <ProtectionSummary view={protection} onChange={setProtection} />
               <Recipient info={info} amount={amount} />
               {threshold && (
-                <div className="sk-card tint stack-sm" style={{ padding: 14 }}>
-                  <span className="sk-section-title">Your rule, set in advance</span>
-                  <span className="small">
-                    First payments of <strong>{threshold}</strong> or more to someone new get a second look from {TRUSTED} before any money moves.
-                  </span>
-                  <span className="xs muted">
-                    {info.payee.first_payment && info.amount_cents >= (info.review_threshold_cents ?? Infinity) ? "This payment matches your rule." : "This payment doesn't match your rule."}
-                  </span>
-                </div>
+                <span className="xs muted">
+                  {info.payee.first_payment && info.amount_cents >= (thresholdCents ?? Infinity) ? `This payment matches your rule: ${TRUSTED} will be asked.` : "This payment doesn't match your rule."}
+                </span>
               )}
               <div className="stack-sm">
                 <label className="row" style={{ gap: 10, alignItems: "flex-start", cursor: "pointer" }}>
@@ -254,9 +308,9 @@ export function Payer() {
             <div className="stack-lg">
               <div className="stack-sm" aria-live="polite">
                 <h1 ref={headingRef} tabIndex={-1} style={{ fontSize: "var(--text-xl)" }}>
-                  {headline(state, lastDecision?.decided_by, Boolean(ruleCheck) && quotes.length === 0)}
+                  {headline(state, lastDecision?.decided_by, Boolean(ruleCheck) && quotes.length === 0, TRUSTED)}
                 </h1>
-                <p className="soft">{body(state, amount, info.payee.name, lastDecision?.decided_by)}</p>
+                <p className="soft">{body(state, amount, info.payee.name, lastDecision?.decided_by, TRUSTED)}</p>
               </div>
 
               {purchase.paypal.order_id && <PayPalCheck path={`/v1/purchases/${purchase.id}/paypal`} amount={amount} refreshKey={state} transfer={{ payee: info.payee.name, configured: info.payout_configured }} />}
@@ -330,17 +384,14 @@ export function Payer() {
                     </div>
                   </section>
 
-                  {!link ? (
-                    <div className="stack-sm">
-                      <Button block onClick={askReviewer} busy={asking}>
-                        Ask {TRUSTED} to check
-                      </Button>
-                      <p className="xs muted">{TRUSTED} is your trusted contact. She sees this payment and the reasons above, and decides whether it goes ahead.</p>
-                    </div>
+                  {guardianHold ? (
+                    <GuardianStatus hold={hold!} trusted={TRUSTED} onRemind={remind} reminding={reminding} note={remindNote} />
                   ) : (
-                    <Notice tone="held" title={`Waiting for ${TRUSTED}`} role="status">
-                      We&apos;ve asked {TRUSTED} to look at this. Her link works until {clock(link.expires_at)}. While you wait, you could call the person on a number you already have for them.
-                    </Notice>
+                    hold && (
+                      <Notice tone="held" title="No second key on this payment" role="status">
+                        It was paused before a trusted contact was set up, so only you can decide it.
+                      </Notice>
+                    )
                   )}
                   {!cancelAsk ? (
                     <Button variant="quiet" onClick={() => setCancelAsk(true)} style={{ alignSelf: "center" }}>
@@ -398,7 +449,9 @@ export function Payer() {
           <Rail label="Payment progress" steps={rail} />
           {!purchase && (
             <p className="small soft">
-              Pick a scenario and tap Send. The payment goes through the real Second Key engine and the PayPal sandbox: Rose&apos;s own rule and any conversation she chooses to share are checked, PayPal reserves the money, and nothing completes without either a clean check or a person&apos;s decision.
+              {protection?.protection_on
+                ? "Pick a scenario and tap Send. The payment goes through the real Second Key engine and the PayPal sandbox: Rose's standing rule and any conversation she chooses to share are checked, PayPal reserves the money, and a paused payment completes only if her trusted contact approves it on their own phone."
+                : "First, Rose sets up her second key: a rule, and a trusted contact who accepts on their own phone. Then she can send."}
             </p>
           )}
           {purchase && (
@@ -430,17 +483,18 @@ export function Payer() {
           )}
         </div>
 
-        {link && purchase && state === "HELD" && (
+        {protection && (protection.protection_on || protection.guardians.length > 0) && (
           <div className="sk-card stack">
             <div className="row between">
               <h2 style={{ fontSize: "var(--text-lg)" }}>{TRUSTED}&apos;s phone</h2>
-              <Demo>Demo delivery</Demo>
+              <Demo>Demo channel</Demo>
             </div>
-            <p className="small soft">A real deployment sends this one-time link by text message. Here it opens in a new tab so you can play {TRUSTED}.</p>
-            <a className="sk-btn secondary" href={link.path} target="_blank" rel="noopener noreferrer">
-              Open {TRUSTED}&apos;s review ↗
-            </a>
-            <span className="xs muted">One-time link · valid until {clock(link.expires_at)} · the payment stays reserved until {TRUSTED} decides or it&apos;s released automatically.</span>
+            <p className="small soft">
+              {TRUSTED}&apos;s requests go to {TRUSTED}&apos;s phone, never to this screen. In this demo a separate window stands in for that phone and holds its own key; this page can&apos;t read it. In production the request goes by text or email from a provider, and that channel&apos;s security is what keeps the two keys apart.
+            </p>
+            <Button variant="secondary" onClick={openGuardianWindow}>
+              Open {TRUSTED}&apos;s phone ↗
+            </Button>
           </div>
         )}
 
@@ -477,8 +531,45 @@ function Recipient({ info, amount }: { info: NonNullable<ScenarioInfo["transfer"
   );
 }
 
-function headline(state: string | undefined, decidedBy: string | undefined, byRuleOnly = false) {
-  const byContact = decidedBy?.endsWith("(link)");
+/** A decision by the trusted contact (ADR-0020: "guardian:<id>"; pre-0020 links: "...(link)"). */
+const byContactOf = (decidedBy: string | undefined) => Boolean(decidedBy?.startsWith("guardian:") || decidedBy?.endsWith("(link)"));
+const byPayerOf = (decidedBy: string | undefined) => Boolean(decidedBy?.startsWith("payer:") || (decidedBy?.startsWith("shopper:") && !decidedBy.endsWith("(link)")));
+
+/** Paused, waiting for the trusted contact: where the request is, and what Rose can (and can't) do. */
+function GuardianStatus({ hold, trusted, onRemind, reminding, note }: { hold: HoldInfo; trusted: string; onRemind: () => void; reminding: boolean; note: string }) {
+  const g = hold.approver.guardian;
+  const n = hold.notification;
+  if (!g || g.status !== "ACTIVE")
+    return (
+      <Notice tone="held" title="No trusted contact is in force" role="status">
+        Your trusted contact was removed or revoked. Nobody can approve this payment until a replacement takes effect (48 hours after you choose one). You can cancel it.
+      </Notice>
+    );
+  const failed = n && (n.status === "FAILED" || (n.status === "PENDING" && n.attempts > 0));
+  return (
+    <div className="stack-sm">
+      {failed ? (
+        <Notice tone="bad" title={`We couldn't reach ${trusted} yet`} role="status">
+          {n!.status === "FAILED" ? "Delivery failed." : `Delivery failed ${n!.attempts} time${n!.attempts === 1 ? "" : "s"}; retrying.`} The payment stays paused. You can remind {trusted} or cancel. This never lets you approve it yourself.
+        </Notice>
+      ) : (
+        <Notice tone="held" title={`Waiting for ${trusted}`} role="status">
+          {n?.status === "DELIVERED" ? `Sent to ${trusted}'s phone (${g.address}) at ${clock(n.at)}.` : `Sending to ${trusted}'s phone (${g.address})…`} Only {trusted} can approve this payment. You can&apos;t, and that&apos;s the point. While you wait, you could call the person on a number you already have for them.
+        </Notice>
+      )}
+      <div className="row between">
+        <Button size="sm" variant="secondary" onClick={onRemind} busy={reminding}>
+          Remind {trusted}
+        </Button>
+        {note && <span className="xs muted">{note}</span>}
+      </div>
+    </div>
+  );
+}
+
+function headline(state: string | undefined, decidedBy: string | undefined, byRuleOnly = false, trusted = "Your trusted contact") {
+  const byContact = byContactOf(decidedBy);
+  const TRUSTED = trusted;
   switch (state) {
     case "HELD":
       return byRuleOnly ? "Paused by your rule" : "We've paused this payment";
@@ -498,8 +589,9 @@ function headline(state: string | undefined, decidedBy: string | undefined, byRu
   }
 }
 
-function body(state: string | undefined, amount: string, payee: string, decidedBy: string | undefined) {
-  const byContact = decidedBy?.endsWith("(link)");
+function body(state: string | undefined, amount: string, payee: string, decidedBy: string | undefined, trusted = "Your trusted contact") {
+  const byContact = byContactOf(decidedBy);
+  const TRUSTED = trusted;
   switch (state) {
     case "HELD":
       return `${amount} is reserved in your PayPal account, not sent to ${payee}.`;
@@ -508,7 +600,7 @@ function body(state: string | undefined, amount: string, payee: string, decidedB
     case "VOIDED":
       return byContact
         ? `${TRUSTED} chose not to send it, and PayPal released the reserved money.`
-        : decidedBy?.startsWith("shopper:")
+        : byPayerOf(decidedBy)
           ? "You cancelled it, and PayPal released the reserved money."
           : "PayPal released the reserved money.";
     case "CAPTURE_APPROVED":
@@ -522,7 +614,7 @@ function body(state: string | undefined, amount: string, payee: string, decidedB
 }
 
 /** Steps derived only from backend states: check → reserved → decision → PayPal confirmed. */
-function railFor(state: string | undefined, asked: boolean, needsReview: boolean): { label: string; status: "done" | "held" | "bad" | "now" | "todo"; moving?: boolean }[] {
+function railFor(state: string | undefined, asked: boolean, needsReview: boolean, trusted: string): { label: string; status: "done" | "held" | "bad" | "now" | "todo"; moving?: boolean }[] {
   const s = state ?? "";
   const checked = !["", "SCREENING", "AUTHORIZING"].includes(s);
   const decided = ["VOIDING", "VOIDED", "CAPTURE_APPROVED", "CAPTURE_PENDING", "CAPTURED"].includes(s);
@@ -534,7 +626,7 @@ function railFor(state: string | undefined, asked: boolean, needsReview: boolean
     ];
   return [
     { label: "Checked", status: checked ? "done" : s ? "now" : "todo", moving: true },
-    { label: s === "HELD" ? (asked ? "Waiting for review" : "Paused") : !s ? "Reviewed if needed" : needsReview ? "Decided" : "No review needed", status: decided ? "done" : s === "HELD" ? "now" : "todo", moving: false },
+    { label: s === "HELD" ? (asked ? `Waiting for ${trusted}` : "Paused") : !s ? "Reviewed if needed" : needsReview ? "Decided" : "No review needed", status: decided ? "done" : s === "HELD" ? "now" : "todo", moving: false },
     { label: confirmed ? (s === "VOIDED" ? "Cancelled" : "Completed") : "PayPal confirms", status: confirmed ? "done" : decided ? "now" : "todo", moving: true },
   ];
 }

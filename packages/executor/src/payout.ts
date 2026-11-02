@@ -10,7 +10,7 @@
 import { and, eq } from "drizzle-orm";
 import { fromCents, paypalRequestId } from "@witness/core";
 import { QUEUES, appendAudit, dbOf, enqueue, journalFinish, journalStart, schema, withTx, type PurchaseRow, type Tx } from "@witness/db";
-import { logOf, nowOf } from "@witness/engine";
+import { logOf, nowOf, recordPaidPayee } from "@witness/engine";
 import { PayPalHttpError, PayPalNetworkError } from "@witness/paypal";
 import type { ExecutorDeps } from "./executor.ts";
 
@@ -37,8 +37,12 @@ export async function payoutReceiver(tx: Tx, p: PurchaseRow): Promise<string | n
   return policy?.kind === "transfer" && typeof policy.payee?.email === "string" ? policy.payee.email : null;
 }
 
-/** Called in the same transaction that moves a purchase to CAPTURED. */
+/**
+ * Called in the same transaction that moves a purchase to CAPTURED. A captured transfer also records the
+ * payee in the payer's history (ADR-0020): only a verified capture establishes "paid before".
+ */
 export async function schedulePayout(d: ExecutorDeps, tx: Tx, p: PurchaseRow): Promise<boolean> {
+  await recordPaidPayee(tx, p, nowOf(d));
   if (!(await payoutReceiver(tx, p))) return false;
   await enqueue(d.boss, tx, QUEUES.payout, { tenantId: p.tenantId, purchaseId: p.id }, { singletonKey: `payout:${p.id}` });
   return true;

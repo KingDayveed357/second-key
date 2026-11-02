@@ -4,6 +4,7 @@ import { standardAdapter, swapAdapter, type CheckoutAdapter } from "@witness/cor
 import type { CatalogSource } from "@witness/catalog";
 import type { PayPalClient } from "@witness/paypal";
 import type { LlmClient } from "@witness/ai";
+import type { Notifier } from "./protection.ts";
 
 export interface Logger {
   info(msg: string, data?: Record<string, unknown>): void;
@@ -39,6 +40,10 @@ export interface EngineDeps {
    */
   demoRecipientEmail?: string;
   adapters?: Record<string, CheckoutAdapter>;
+  /** Guardian channel (ADR-0020). Default: the demo inbox. */
+  notifier?: Notifier;
+  /** Delay before a loosening profile change applies (default 48 h; never below 24 h). */
+  loosenDelayMs?: number;
 }
 
 export interface Principal {

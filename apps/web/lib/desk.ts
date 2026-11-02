@@ -46,7 +46,7 @@ export interface DeskRow {
   // Policy (deterministic)
   policy: "Review required" | "Refused by rule" | "Order mismatch: cancelled" | "Allowed" | "Screening";
   // Person
-  review: "Not needed" | "Awaiting" | "Approved" | "Denied" | "Auto-released" | "Intent revoked";
+  review: "Not needed" | "Awaiting" | "Approved" | "Denied" | "Cancelled by payer" | "Auto-released" | "Intent revoked";
   decidedBy: string | null;
   // PayPal (recorded from PayPal responses)
   authorization: "None" | "Requested" | "Failed" | "Reserved" | "Releasing" | "Voided" | "Captured";
@@ -72,6 +72,8 @@ export function toRow(i: Incident, payoutsConfigured = true, label: (tactic: str
       ? "Approved"
       : i.hold_resolution === "DENIED"
         ? "Denied"
+        : i.hold_resolution === "CANCELLED"
+          ? "Cancelled by payer"
         : i.hold_resolution === "TIMEOUT"
           ? "Auto-released"
           : i.hold_resolution === "REVOKED"

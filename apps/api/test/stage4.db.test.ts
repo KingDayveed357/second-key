@@ -77,8 +77,8 @@ describe("HOLD lifecycle over HTTP", () => {
   test("phone link: view, approve, then the executor captures", async () => {
     const id = await heldPurchase();
     const { token, path } = await link(id);
-    expect(path).toBe(`/holds/${id}?t=${token}`);
-    const view = await app.inject({ method: "GET", url: `/v1/holds/${id}?t=${token}` });
+    expect(path).toBe(`/holds/${id}#k=${token}`);
+    const view = await app.inject({ method: "POST", url: `/v1/holds/${id}/view`, payload: { token } });
     expect(view.json()).toMatchObject({ state: "HELD", amount: { value: "80.00" }, items: [{ product_id: "TRL-NOSIZE" }] });
     expect(view.json().reasons.join()).toMatch(/no size/);
 

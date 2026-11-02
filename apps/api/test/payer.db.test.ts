@@ -5,6 +5,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { createApiKey } from "@witness/db";
+import { importPayee } from "@witness/engine";
 import { FakeLlm } from "@witness/ai";
 import { buildApp } from "../src/app.ts";
 import { createHarness, type Harness } from "../../../test-support/harness.ts";
@@ -22,6 +23,8 @@ beforeAll(async () => {
   keys.shopper = (await createApiKey(h.pool, h.tenantId, `shopper:${h.shopperId}`, ["shopper"])).key;
   keys.stranger = (await createApiKey(h.pool, h.tenantId, "shopper:shp_someone_else", ["shopper"])).key;
   keys.ops = (await createApiKey(h.pool, h.tenantId, "ops:p", ["ops"])).key;
+  // ADR-0020: "paid before" comes from recorded history, never from the intent's assertion.
+  await importPayee(h.d, h.tenantId, h.shopperId, { id: "payee_morgan_sons" }, "test:seed");
 });
 afterAll(async () => {
   await app.close();
@@ -121,7 +124,7 @@ describe("the payer's own controls", () => {
     const r = await app.inject({ method: "POST", url: `/v1/me/purchases/${p.id}/feedback`, headers: bearer("shopper"), payload: { quote: "I need it for bail", note: "Danny really is in trouble; I called his school." } });
     expect(r.statusCode).toBe(200);
     const token = await link(p.id);
-    const v = (await app.inject({ method: "GET", url: `/v1/holds/${p.id}?t=${token}` })).json();
+    const v = (await app.inject({ method: "POST", url: `/v1/holds/${p.id}/view`, payload: { token } })).json();
     expect(v.state).toBe("HELD");
     expect(v.feedback).toEqual([expect.objectContaining({ quote: "I need it for bail", note: expect.stringContaining("called his school") })]);
     expect((await evidence(p.id)).feedback).toHaveLength(1);
