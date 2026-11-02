@@ -41,6 +41,7 @@ import {
 import { UnavailableLlm, screenPaymentAi, settleDeferred, type AiSubject } from "@witness/ai";
 import { PayPalHttpError, PayPalNetworkError } from "@witness/paypal";
 import { DEFAULT_ADAPTERS, logOf, nowOf, type EngineDeps, type Principal } from "./deps.ts";
+import { applyDueChangesFor, classifyHold, holdAuthority, notifyNewHold, screeningProtection } from "./protection.ts";
 
 const { purchases, intents, shoppers, tenants, approvals, holds, checks: checksT, paypalCalls } = schema;
 
@@ -131,6 +132,12 @@ export async function submitPurchase(d: EngineDeps, who: Principal, idempotencyK
   const catalog = ids.length ? await d.catalog.getProducts(ids) : { facts: new Map() };
   const now = nowOf(d);
 
+  // ADR-0020: apply the payer's due profile changes first, in their own transaction (lock order).
+  if (req.kind === "transfer") {
+    const owner = (await db.select({ shopperId: intents.shopperId }).from(intents).where(and(eq(intents.id, req.intent_id), eq(intents.tenantId, who.tenantId))).limit(1))[0];
+    if (owner) await applyDueChangesFor(d, who.tenantId, owner.shopperId);
+  }
+
   const step = await withTx(d.pool, async (tx) => {
     const intent = (
       await tx.db
@@ -144,6 +151,10 @@ export async function submitPurchase(d: EngineDeps, who: Principal, idempotencyK
     if (intent.status !== "CONFIRMED") return err(409, "Intent is not confirmed", `intent ${intent.id} is ${intent.status}`);
     const policy = parseIntentPolicy(intent.policy);
     if (!policy.success) return err(409, "Intent policy is invalid", `intent ${intent.id} can't be used`);
+
+    // ADR-0020: a transfer is screened against the payer's standing profile and real payment history,
+    // read here, before this transaction's first audit append (lock order), and snapshotted below.
+    const protection = policy.data.kind === "transfer" ? await screeningProtection(tx, who.tenantId, intent.shopperId, policy.data) : null;
 
     const used = await tx.db
       .select({ id: purchases.id })
@@ -181,7 +192,8 @@ export async function submitPurchase(d: EngineDeps, who: Principal, idempotencyK
           : { intent_id: intent.id, intent_version: intent.version, policy_digest: intent.policyDigest, agent: who.principal, retailer: req.retailer, lines: req.lines, adapter: adapterName },
     });
 
-    const screened = screenPayment(policy.data, req, catalog.facts, { now, purchasesUsed: used.length });
+    if (protection) await tx.db.update(purchases).set({ protection: protection.snapshot }).where(eq(purchases.id, purchaseId));
+    const screened = screenPayment(policy.data, req, catalog.facts, { now, purchasesUsed: used.length, ...(protection ? { payer: protection.payer } : {}) });
     const cart = screened.cart;
     const all: Check[] = [...screened.checks];
     if (!shopper?.vaultId) all.push({ id: "shopper.vault", result: "fail", detail: "shopper has no saved PayPal wallet" });
@@ -384,9 +396,22 @@ export async function verifyPurchase(d: EngineDeps, tenantId: string, purchaseId
     if (unknowns.length) {
       const reasons = unknowns.map((c) => `${c.checkId}: ${c.detail}`);
       const autoVoidAt = new Date((locked.authorizedAt ?? now).getTime() + (d.holdMs ?? 72 * 3600_000));
+      // ADR-0020: who may approve is decided here, deterministically, and never by a model.
+      const reasonClasses = classifyHold(unknowns);
+      const isTransfer = (locked.request as { kind?: string } | null)?.kind === "transfer";
+      const authority = await holdAuthority(tx, tenantId, intent.shopperId, isTransfer);
       await recordDecision(tx, purchaseId, "HOLD", reasons, "engine");
-      await transition(tx, { tenantId, purchaseId, from: "VERIFYING", to: "HELD", event: "purchase.held", payload: { reasons, auto_void_at: autoVoidAt.toISOString() }, patch: { outcome: "HOLD", reasons } });
-      await tx.db.insert(holds).values({ purchaseId, autoVoidAt });
+      await transition(tx, {
+        tenantId,
+        purchaseId,
+        from: "VERIFYING",
+        to: "HELD",
+        event: "purchase.held",
+        payload: { reasons, auto_void_at: autoVoidAt.toISOString(), approver: authority.approver, guardian_id: authority.guardianId, reason_classes: reasonClasses },
+        patch: { outcome: "HOLD", reasons },
+      });
+      await tx.db.insert(holds).values({ purchaseId, autoVoidAt, approver: authority.approver, guardianId: authority.guardianId, reasonClasses });
+      if (authority.approver === "guardian") await notifyNewHold(d, tx, tenantId, purchaseId, authority.guardianId);
       await enqueue(d.boss, tx, QUEUES.holdTimeout, { tenantId, purchaseId }, { startAfter: autoVoidAt, singletonKey: `hold:${purchaseId}` });
       return;
     }

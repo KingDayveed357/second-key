@@ -30,6 +30,22 @@ import {
   resolveHold,
   verifyHold,
   submitPurchase,
+  getProtection,
+  setThreshold,
+  inviteGuardian,
+  setGuardian,
+  removeGuardian,
+  revokeGuardian,
+  cancelProfileChange,
+  remindGuardian,
+  createDemoInbox,
+  listInbox,
+  openInboxMessage,
+  acceptInvite,
+  createDemoPayer,
+  demoKnownPayees,
+  importPayee,
+  type ProtectionResult,
   type HoldActor,
   type HoldResult,
   type EngineDeps,
@@ -247,6 +263,7 @@ export function buildApp(o: AppOptions): FastifyInstance {
   });
 
   // ---- holds (shopper decides on a held purchase; funds stay authorized meanwhile) ----------
+  // The hold credential travels only in a POST body, never a URL (ADR-0020 §5, amends ADR-0017).
   const holdActor = async (req: FastifyRequest, token: unknown): Promise<HoldActor | null> => {
     const header = req.headers.authorization ?? "";
     if (header.startsWith("Bearer ")) {
@@ -267,19 +284,31 @@ export function buildApp(o: AppOptions): FastifyInstance {
     const sid = shopperIdOf(who);
     const r = await issueHoldLink(d, who.tenantId, req.params.id, sid ? { shopperId: sid } : { admin: true });
     if (r.kind === "error") return problem(reply, r.status, r.title, r.detail);
-    // Shown once. Only the hash is stored.
-    return { path: `/holds/${req.params.id}?t=${r.value.token}`, token: r.value.token, expires_at: r.value.expires_at };
+    // Shown once. Only the hash is stored. The credential rides in the fragment, which browsers never
+    // send to a server or put in a Referer (ADR-0020 §5).
+    return { path: `/holds/${req.params.id}#k=${r.value.token}`, token: r.value.token, expires_at: r.value.expires_at };
   });
 
-  app.get<{ Params: { id: string }; Querystring: { t?: string } }>("/v1/holds/:id", async (req, reply) => {
-    const actor = await holdActor(req, req.query.t);
-    if (!actor) return problem(reply, 401, "Unauthorized", "Sign in or use the link you were sent");
+  const signedIn = async (req: FastifyRequest) => (req.headers.authorization?.startsWith("Bearer ") ? holdActor(req, undefined) : null);
+  const viaLink = "Sign in, or send the credential from your request in the body of a POST";
+  app.get<{ Params: { id: string } }>("/v1/holds/:id", async (req, reply) => {
+    const actor = await signedIn(req);
+    if (!actor) return problem(reply, 401, "Unauthorized", viaLink);
     return sendHold(reply, await getHold(d, req.params.id, actor, req.principal?.tenantId));
   });
-
-  app.get<{ Params: { id: string }; Querystring: { t?: string } }>("/v1/holds/:id/verification", async (req, reply) => {
-    const actor = await holdActor(req, req.query.t);
-    if (!actor) return problem(reply, 401, "Unauthorized", "Sign in or use the link you were sent");
+  app.get<{ Params: { id: string } }>("/v1/holds/:id/verification", async (req, reply) => {
+    const actor = await signedIn(req);
+    if (!actor) return problem(reply, 401, "Unauthorized", viaLink);
+    return sendHold(reply, await verifyHold(d, req.params.id, actor, req.principal?.tenantId));
+  });
+  app.post<{ Params: { id: string }; Body: { token?: string } }>("/v1/holds/:id/view", async (req, reply) => {
+    const actor = await holdActor(req, req.body?.token);
+    if (!actor) return problem(reply, 401, "Unauthorized", viaLink);
+    return sendHold(reply, await getHold(d, req.params.id, actor, req.principal?.tenantId));
+  });
+  app.post<{ Params: { id: string }; Body: { token?: string } }>("/v1/holds/:id/verification", async (req, reply) => {
+    const actor = await holdActor(req, req.body?.token);
+    if (!actor) return problem(reply, 401, "Unauthorized", viaLink);
     return sendHold(reply, await verifyHold(d, req.params.id, actor, req.principal?.tenantId));
   });
 
@@ -301,6 +330,65 @@ export function buildApp(o: AppOptions): FastifyInstance {
     if (!shopperId) return problem(reply, 403, "Payer only");
     return sendHold(reply, await resolveHold(d, req.params.id, "deny", { shopperId }, tenantId));
   });
+
+  app.post<{ Params: { id: string } }>("/v1/me/holds/:id/notify", { preHandler: auth("shopper") }, async (req, reply) => {
+    const { tenantId, shopperId } = payer(req);
+    if (!shopperId) return problem(reply, 403, "Payer only");
+    return sendProt(reply, await remindGuardian(d, tenantId, shopperId, req.params.id));
+  });
+
+  // ---- the payer's standing protection (ADR-0020) -------------------------------------------
+  // One change per request; the server alone decides tighten (now) or loosen (after the delay).
+  const sendProt = (reply: FastifyReply, r: ProtectionResult<unknown>) => (r.kind === "error" ? problem(reply, r.status, r.title, r.detail) : r.value);
+  const asPayer = (fn: (tenantId: string, shopperId: string, req: FastifyRequest) => Promise<ProtectionResult<unknown>>) => async (req: FastifyRequest, reply: FastifyReply) => {
+    const { tenantId, shopperId } = payer(req);
+    if (!shopperId) return problem(reply, 403, "Payer only");
+    return sendProt(reply, await fn(tenantId, shopperId, req));
+  };
+  app.get("/v1/me/protection", { preHandler: auth("shopper") }, asPayer((t, s) => getProtection(d, t, s)));
+  app.post("/v1/me/protection/threshold", { preHandler: auth("shopper") }, asPayer((t, s, req) => setThreshold(d, t, s, req.body)));
+  app.post("/v1/me/guardians", { preHandler: auth("shopper") }, asPayer((t, s, req) => inviteGuardian(d, t, s, req.body)));
+  app.post("/v1/me/protection/guardian", { preHandler: auth("shopper") }, asPayer((t, s, req) => setGuardian(d, t, s, req.body)));
+  app.post("/v1/me/protection/guardian/remove", { preHandler: auth("shopper") }, asPayer((t, s) => removeGuardian(d, t, s)));
+  app.post("/v1/me/protection/guardian/revoke", { preHandler: auth("shopper") }, asPayer((t, s, req) => revokeGuardian(d, t, s, req.body)));
+  app.post<{ Params: { id: string } }>("/v1/me/protection/changes/:id/cancel", { preHandler: auth("shopper") }, asPayer((t, s, req) => cancelProfileChange(d, t, s, (req.params as { id: string }).id)));
+
+  /** Admin only: import a payee the payer is known to have paid (audited). */
+  app.post<{ Body: { shopper_id?: unknown; payee_id?: unknown; email?: unknown } }>("/v1/admin/payee-history", { preHandler: auth("admin") }, async (req, reply) => {
+    const b = req.body ?? {};
+    if (typeof b.shopper_id !== "string" || typeof b.payee_id !== "string" || (b.email !== undefined && typeof b.email !== "string")) return problem(reply, 422, "Send { shopper_id, payee_id, email? }");
+    await importPayee(d, req.principal!.tenantId, b.shopper_id, { id: b.payee_id, ...(typeof b.email === "string" ? { email: b.email } : {}) }, `admin:${req.principal!.principal}`);
+    return { imported: true };
+  });
+
+  // ---- Second Key demo: a payer per visitor, and an inbox standing in for the guardian's phone ----
+  // The inbox is read only with its secret, which the guardian's window alone holds. No shopper-role
+  // route reaches it: the payer's credential can't read guardian messages or obtain a hold credential.
+  app.post("/v1/demo/payers", { preHandler: auth("demo", "admin") }, async (req, reply) => {
+    if (!o.demoShopperId) return problem(reply, 503, "Demo not configured", "WITNESS_DEMO_SHOPPER_ID is not set");
+    return reply.code(201).send(await createDemoPayer(d, req.principal!.tenantId, o.demoShopperId, demoKnownPayees(d)));
+  });
+  app.post<{ Params: { name: string }; Querystring: { evidence?: string } }>("/v1/me/demo/transfers/:name", { preHandler: auth("shopper") }, async (req, reply) => {
+    const { tenantId, shopperId } = payer(req);
+    if (!shopperId) return problem(reply, 403, "Payer only");
+    if (!o.demoShopperId) return problem(reply, 503, "Demo not configured");
+    if (!SCENARIOS[req.params.name]?.transfer) return problem(reply, 404, "Unknown transfer scenario", req.params.name);
+    const r = await runScenario(d, { tenantId, principal: `agent:payer-app-${shopperId}`, scopes: ["agent:purchase"] }, shopperId, req.params.name, { evidence: req.query.evidence !== "none", standingProfile: true });
+    if (!r) return problem(reply, 404, "Unknown scenario", req.params.name);
+    if (r.result.kind === "error") return problem(reply, r.result.status, r.result.title, r.result.detail);
+    return reply.code(202).send({ scenario: req.params.name, intent_id: r.intentId, purchase: purchaseView(r.result.purchase) });
+  });
+  const inboxSecret = (req: FastifyRequest) => req.headers["x-inbox-secret"];
+  app.post("/v1/demo/inboxes", { preHandler: auth("demo", "admin") }, async (req, reply) => reply.code(201).send(await createDemoInbox(d, req.principal!.tenantId)));
+  app.get<{ Params: { address: string } }>("/v1/demo/inboxes/:address/messages", { preHandler: auth("demo", "admin") }, async (req, reply) =>
+    sendProt(reply, await listInbox(d, req.principal!.tenantId, req.params.address, inboxSecret(req))),
+  );
+  app.post<{ Params: { address: string; id: string } }>("/v1/demo/inboxes/:address/messages/:id/open", { preHandler: auth("demo", "admin") }, async (req, reply) =>
+    sendProt(reply, await openInboxMessage(d, req.principal!.tenantId, req.params.address, inboxSecret(req), req.params.id)),
+  );
+  app.post<{ Params: { address: string; id: string } }>("/v1/demo/inboxes/:address/messages/:id/accept", { preHandler: auth("demo", "admin") }, async (req, reply) =>
+    sendProt(reply, await acceptInvite(d, req.principal!.tenantId, req.params.address, inboxSecret(req), req.params.id)),
+  );
 
   for (const decision of ["approve", "deny"] as const) {
     app.post<{ Params: { id: string }; Body: { token?: string } }>(`/v1/holds/:id/${decision}`, async (req, reply) => {

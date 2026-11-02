@@ -2,16 +2,16 @@ import { Review } from "./review";
 
 export const metadata = { title: "Review a payment · Second Key" };
 
-// The trusted contact's page, opened from the one-time link the API issues (/holds/:id?t=…).
-export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ t?: string }> }) {
+// The trusted contact's page. The credential arrives in the link's fragment (/holds/:id#k=…) or from
+// the guardian's phone window in this tab; it never travels in a URL the server sees (ADR-0020 §5).
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { t } = await searchParams;
   return (
     <div className="stack-lg">
       <header className="stack-sm" style={{ maxWidth: 440, margin: "0 auto", width: "100%" }}>
         <span className="sk-section-title">Experience B · the trusted contact</span>
       </header>
-      <Review id={id} token={typeof t === "string" ? t : ""} />
+      <Review id={id} />
     </div>
   );
 }

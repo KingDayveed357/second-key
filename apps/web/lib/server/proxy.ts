@@ -3,12 +3,16 @@
 //
 //   public  - no key (public API routes)
 //   demo    - WITNESS_DEMO_KEY (judge scenarios, judge screen, aggregate stats)
-//   shopper - WITNESS_SHOPPER_KEY (the shared demo shopper: intents, receipts, hold links)
-//   token   - no key; the one-time hold token travels in the query/body (phone approval)
+//   shopper - WITNESS_SHOPPER_KEY (the shared demo shopper: intents, receipts, hold links), or the
+//             visitor's own demo payer key from the httpOnly session cookie when the request says so
+//   payer   - the visitor's own demo payer key only (Second Key, ADR-0020); never the shared key
+//   token   - no key; the hold credential travels in the POST body, never in a URL
+//   inbox   - WITNESS_DEMO_KEY plus the x-inbox-secret header the guardian's window sends. The payer's
+//             key is never attached, so no payer route can read guardian messages or credentials
 //   console - WITNESS_OPS_KEY, and only with a valid console session cookie
 import "server-only";
 
-export type Role = "public" | "demo" | "shopper" | "token" | "console";
+export type Role = "public" | "demo" | "shopper" | "payer" | "token" | "inbox" | "console";
 
 interface Rule {
   method: "GET" | "POST";
@@ -42,8 +46,23 @@ export const RULES: Rule[] = [
   { method: "POST", pattern: new RegExp(`^/v1/me/purchases/${ID}/feedback$`), role: "shopper" },
   { method: "POST", pattern: new RegExp(`^/v1/me/holds/${ID}/cancel$`), role: "shopper" },
 
-  { method: "GET", pattern: new RegExp(`^/v1/holds/${ID}$`), role: "token" },
-  { method: "GET", pattern: new RegExp(`^/v1/holds/${ID}/verification$`), role: "token" },
+  // Second Key payer (ADR-0020): the standing profile, reminders, and the payer's own view of a hold.
+  // None of these returns a guardian credential or message.
+  { method: "GET", pattern: /^\/v1\/me\/protection$/, role: "payer" },
+  { method: "POST", pattern: /^\/v1\/me\/protection\/(threshold|guardian|guardian\/remove|guardian\/revoke)$/, role: "payer" },
+  { method: "POST", pattern: new RegExp(`^/v1/me/protection/changes/${ID}/cancel$`), role: "payer" },
+  { method: "POST", pattern: /^\/v1\/me\/guardians$/, role: "payer" },
+  { method: "POST", pattern: new RegExp(`^/v1/me/holds/${ID}/notify$`), role: "payer" },
+  { method: "POST", pattern: new RegExp(`^/v1/me/demo/transfers/${ID}$`), role: "payer", costly: true },
+  { method: "GET", pattern: new RegExp(`^/v1/holds/${ID}$`), role: "payer" },
+
+  // The guardian's demo channel: readable only with the inbox secret held by the guardian's window.
+  { method: "POST", pattern: /^\/v1\/demo\/inboxes$/, role: "demo", costly: true },
+  { method: "GET", pattern: /^\/v1\/demo\/inboxes\/SK-[A-Z0-9]{4}-[A-Z0-9]{4}\/messages$/, role: "inbox" },
+  { method: "POST", pattern: new RegExp(`^/v1/demo/inboxes/SK-[A-Z0-9]{4}-[A-Z0-9]{4}/messages/${ID}/(open|accept)$`), role: "inbox" },
+
+  // The reviewer: the credential travels in the POST body only.
+  { method: "POST", pattern: new RegExp(`^/v1/holds/${ID}/(view|verification)$`), role: "token" },
   { method: "POST", pattern: new RegExp(`^/v1/holds/${ID}/(approve|deny)$`), role: "token" },
 
   { method: "GET", pattern: /^\/v1\/console\/(purchases|holds|stats|webhooks)$/, role: "console" },
@@ -68,11 +87,23 @@ export function apiBase(): string {
   return /^https?:\/\//.test(raw) ? raw.replace(/\/$/, "") : `http://${raw}`;
 }
 
-export function keyFor(role: Role): string | null | undefined {
+/** A visitor's own demo payer key, as kept in the httpOnly session cookie (ADR-0020). */
+export const PAYER_COOKIE = "sk_payer";
+export const validPayerKey = (k: string | undefined): k is string => typeof k === "string" && /^wk_[A-Za-z0-9_-]{32}$/.test(k);
+
+/**
+ * The key for a role. `payerKey` is the visitor's session payer key (if any); `asPayer` is true when the
+ * Second Key client asked to act as that payer on a shared shopper route.
+ */
+export function keyFor(role: Role, payerKey?: string, asPayer = false): string | null | undefined {
   switch (role) {
+    case "payer":
+      return validPayerKey(payerKey) ? payerKey : undefined;
     case "demo":
+    case "inbox":
       return process.env.WITNESS_DEMO_KEY;
     case "shopper":
+      if (asPayer) return validPayerKey(payerKey) ? payerKey : undefined;
       return process.env.WITNESS_SHOPPER_KEY;
     case "console":
       return process.env.WITNESS_OPS_KEY;

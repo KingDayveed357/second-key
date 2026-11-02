@@ -7,8 +7,8 @@ import { Button, Live } from "./ui";
 
 /**
  * PayPal's own record of the money, read live through the backend. `path` is the read endpoint the
- * viewer is allowed to use (/v1/purchases/:id/paypal or /v1/holds/:id/verification?t=…). Re-reads
- * whenever `refreshKey` changes, and on demand.
+ * viewer is allowed to use (/v1/purchases/:id/paypal, or POST /v1/holds/:id/verification with the
+ * reviewer's credential in `body`: never in a URL). Re-reads whenever `refreshKey` changes, and on demand.
  */
 export function PayPalCheck({
   path,
@@ -16,8 +16,11 @@ export function PayPalCheck({
   refreshKey,
   console: inConsole,
   transfer,
+  body,
 }: {
   path: string;
+  /** Send as a POST with this body (the reviewer's credential). */
+  body?: unknown;
   amount: string;
   refreshKey?: string;
   console?: boolean;
@@ -31,13 +34,13 @@ export function PayPalCheck({
     setBusy(true);
     setErr("");
     try {
-      setRead(await api<PayPalRead>(path, { console: inConsole }));
+      setRead(await api<PayPalRead>(path, body === undefined ? { console: inConsole } : { method: "POST", body }));
     } catch (e) {
       setErr(errText(e));
     } finally {
       setBusy(false);
     }
-  }, [path, inConsole]);
+  }, [path, inConsole, JSON.stringify(body ?? null)]);
   useEffect(() => {
     void load();
   }, [load, refreshKey]);

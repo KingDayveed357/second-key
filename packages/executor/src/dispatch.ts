@@ -2,8 +2,8 @@
 
 import { and, eq, inArray, lt } from "drizzle-orm";
 import { OPEN_AUTHORIZATION_STATES } from "@witness/core";
-import { QUEUES, dbOf, enqueue, schema, withTx, type PurchaseJob, type QueueName, type WebhookJob } from "@witness/db";
-import { logOf, nowOf } from "@witness/engine";
+import { QUEUES, dbOf, enqueue, schema, withTx, type NotifyJob, type PurchaseJob, type QueueName, type WebhookJob } from "@witness/db";
+import { applyAllDueChanges, deliverNotification, logOf, nowOf, sweepNotifications } from "@witness/engine";
 import { executeCapture, executeVoid, holdTimeout, reconcile, type ExecutorDeps } from "./executor.ts";
 import { checkPayout, executePayout, sweepPayouts, type PayoutJob } from "./payout.ts";
 
@@ -72,8 +72,11 @@ export async function handleJob(d: ExecutorDeps, queue: QueueName, data: unknown
     case QUEUES.webhook:
       result = await processWebhook(d, data as WebhookJob);
       break;
+    case QUEUES.notify:
+      result = await deliverNotification(d, (data as NotifyJob).notificationId);
+      break;
     case QUEUES.sweep:
-      result = `swept ${await sweep(d)}; payouts ${await sweepPayouts(d)}`;
+      result = `swept ${await sweep(d)}; payouts ${await sweepPayouts(d)}; notifications ${await sweepNotifications(d)}; profile changes ${await applyAllDueChanges(d)}`;
       break;
     default:
       throw new Error(`unknown queue ${queue}`);

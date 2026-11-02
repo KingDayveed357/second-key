@@ -62,6 +62,11 @@ export const SCENARIOS: Record<string, Scenario> = {
 };
 
 export const DEMO_PAYEE = { id: "payee_jmorgan", name: "J. Morgan", first_payment: true } as const;
+
+/** Payees a fresh demo payer has already paid: Rose's long-time contractor (ADR-0020, an audited import). */
+export function demoKnownPayees(d: EngineDeps): { id: string; email?: string }[] {
+  return [{ id: "payee_morgan_sons", ...(d.demoRecipientEmail ? { email: d.demoRecipientEmail } : {}) }];
+}
 const DEMO_AMOUNT_CENTS = 180000;
 
 /** Second Key: exactly $1,800 to one payee, as the payer confirmed it (ADR-0016). */
@@ -104,12 +109,17 @@ export async function runScenario(
   agent: Principal,
   shopperId: string,
   name: string,
-  /** Transfers: share the conversation with the payment (default), or not (ADR-0019: evidence is optional). */
-  opts: { evidence?: boolean } = {},
+  /**
+   * Transfers: share the conversation with the payment (default), or not (ADR-0019: evidence is optional).
+   * `standingProfile`: leave the threshold out of the intent, so the payer's standing profile alone
+   * governs the review rule (ADR-0020; the Second Key payer demo).
+   */
+  opts: { evidence?: boolean; standingProfile?: boolean } = {},
 ): Promise<{ scenario: Scenario; intentId: string; result: SubmitResult } | null> {
   const scenario = SCENARIOS[name];
   if (!scenario) return null;
-  const t = scenario.transfer && { ...scenario.transfer, payee: { ...scenario.transfer.payee, ...(d.demoRecipientEmail ? { email: d.demoRecipientEmail } : {}) } };
+  const base = scenario.transfer && (opts.standingProfile ? (({ review_threshold_cents: _omit, ...rest }) => rest)(scenario.transfer) : scenario.transfer);
+  const t = base && { ...base, payee: { ...base.payee, ...(d.demoRecipientEmail ? { email: d.demoRecipientEmail } : {}) } };
   const created = await createIntent(
     d,
     agent.tenantId,

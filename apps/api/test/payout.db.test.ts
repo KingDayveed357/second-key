@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest"
 import type { FastifyInstance } from "fastify";
 import { QUEUES, createApiKey } from "@witness/db";
 import { handleJob } from "@witness/executor";
+import { importPayee } from "@witness/engine";
 import { buildApp } from "../src/app.ts";
 import { createHarness, type Harness } from "../../../test-support/harness.ts";
 
@@ -22,6 +23,8 @@ beforeAll(async () => {
   keys.shopper = (await createApiKey(h.pool, h.tenantId, `shopper:${h.shopperId}`, ["shopper"])).key;
   keys.demo = (await createApiKey(h.pool, h.tenantId, "demo", ["demo"])).key;
   keys.ops = (await createApiKey(h.pool, h.tenantId, "ops:po", ["ops"])).key;
+  // ADR-0020: "paid before" comes from recorded history, never from the intent's assertion.
+  for (const email of [undefined, RECIPIENT]) await importPayee(h.d, h.tenantId, h.shopperId, { id: "payee_morgan_sons", ...(email ? { email } : {}) }, "test:seed");
 });
 afterAll(async () => {
   await app.close();
@@ -66,9 +69,9 @@ describe("recipient payout after a verified capture", () => {
     expect(ev.paypal_calls.map((c: { op: string }) => c.op)).toContain("payout");
 
     // The reviewer sees it; the live read asks PayPal.
-    const view = (await app.inject({ method: "GET", url: `/v1/holds/${id}?t=${token}` })).json();
+    const view = (await app.inject({ method: "POST", url: `/v1/holds/${id}/view`, payload: { token } })).json();
     expect(view).toMatchObject({ payout_configured: true, payout: { status: "SUCCESS" }, payee: { email: "sb•••01@personal.example.com" } });
-    const live = (await app.inject({ method: "GET", url: `/v1/holds/${id}/verification?t=${token}` })).json();
+    const live = (await app.inject({ method: "POST", url: `/v1/holds/${id}/verification`, payload: { token } })).json();
     expect(live.payout).toMatchObject({ item_status: "SUCCESS", batch_id: batch.id });
     expect((await app.inject({ method: "GET", url: `/v1/purchases/${id}/paypal`, headers: bearer("ops") })).json().payout.item_status).toBe("SUCCESS");
   });

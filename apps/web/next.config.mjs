@@ -18,6 +18,9 @@ const nextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
         ],
       },
+      // Second Key reviewer and guardian pages handle a credential: never cache them (ADR-0020 §5).
+      { source: "/holds/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
+      { source: "/guardian", headers: [{ key: "Cache-Control", value: "no-store" }] },
     ];
   },
 };
