@@ -121,10 +121,12 @@ export const TACTICS: Record<string, { label: string; plain: string }> = {
   remote_access: { label: "Asked for access to a device", plain: "Installing software or sharing a screen gives a stranger control." },
   threat: { label: "A threat if you don't pay", plain: "Threats are meant to stop you from checking." },
   instruction_to_agent: { label: "Text giving orders to the AI agent", plain: "Product pages shouldn't instruct shopping agents. This text tried to change what the agent buys." },
+  payment_instruction_change: { label: "Asked to pay somewhere new", plain: "A change of account or recipient by message is the most common way invoice payments are stolen. Confirm it on a number you already had." },
+  instruction_to_ai: { label: "Text giving orders to an AI", plain: "A message shouldn't instruct the system checking it. This text tried to change the outcome." },
 };
 export const tacticOf = (t: string) => TACTICS[t] ?? { label: t.replace(/_/g, " "), plain: "" };
 
-const PRIORITY = ["secrecy", "urgency", "threat", "safe_account", "remote_access", "unusual_payment_channel", "instruction_to_agent", "authority_pressure", "impersonation", "emotional_manipulation", "too_good_to_be_true"];
+const PRIORITY = ["payment_instruction_change", "secrecy", "urgency", "threat", "safe_account", "remote_access", "unusual_payment_channel", "instruction_to_agent", "instruction_to_ai", "authority_pressure", "impersonation", "emotional_manipulation", "too_good_to_be_true"];
 
 /** Strongest signals first, and one card per pattern before any repeats. */
 export function rankEvidence<T extends { tactic: string }>(items: T[]): T[] {

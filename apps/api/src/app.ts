@@ -52,6 +52,7 @@ import {
   type Principal,
 } from "@witness/engine";
 import { PayPalHttpError, PayPalNetworkError } from "@witness/paypal";
+import { fixtureFacts } from "@witness/catalog";
 import { registerConsole, type ConsoleOptions } from "./console.ts";
 import { registerAnalyze } from "./analyze.ts";
 import { registerDisputes } from "./disputes.ts";
@@ -401,11 +402,21 @@ export function buildApp(o: AppOptions): FastifyInstance {
   // ---- demo -------------------------------------------------------------------------------
   // Scenario details are synthetic demo data (people, conversations), so the payer screen can show
   // exactly what the engine will screen.
+  const pages = fixtureFacts();
   app.get("/v1/demo/scenarios", async () =>
     Object.entries(SCENARIOS).map(([name, s]) => ({
       name,
       title: s.title,
       expected: s.expected,
+      ...(s.agent
+        ? {
+            agent: {
+              followed_note: s.agent.followed_note,
+              read: { product_id: s.agent.read, title: pages.get(s.agent.read)?.title ?? s.agent.read, description: pages.get(s.agent.read)?.description ?? null },
+              cart_product: s.product,
+            },
+          }
+        : {}),
       ...(s.transfer
         ? {
             transfer: {
@@ -425,6 +436,9 @@ export function buildApp(o: AppOptions): FastifyInstance {
   app.post<{ Params: { name: string } }>("/v1/demo/scenarios/:name", { preHandler: auth("demo", "admin") }, async (req, reply) => {
     if (!o.demoShopperId) return problem(reply, 503, "Demo not configured", "WITNESS_DEMO_SHOPPER_ID is not set");
     const who = req.principal!;
+    // The shared demo payer has paid Rose's contractor before (ADR-0020: history, not an assertion). An
+    // audited, idempotent import, so the suite behaves the same on any deployment.
+    if (SCENARIOS[req.params.name]?.transfer) for (const p of demoKnownPayees(d)) await importPayee(d, who.tenantId, o.demoShopperId, p, "demo:seed");
     const r = await runScenario(d, { ...who, principal: `agent:demo-${who.principal}` }, o.demoShopperId, req.params.name, { evidence: (req.query as { evidence?: string }).evidence !== "none" });
     if (!r) return problem(reply, 404, "Unknown scenario", req.params.name);
     if (r.result.kind === "error") return problem(reply, r.result.status, r.result.title, r.result.detail);

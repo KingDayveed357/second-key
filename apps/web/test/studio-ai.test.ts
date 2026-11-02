@@ -2,7 +2,7 @@
 
 import { describe, expect, test } from "vitest";
 import { DEFAULT_MODEL } from "../../../packages/ai/src/models.ts";
-import { STUDIO_MODEL, costOf, fromAnthropic, toAnthropic } from "../lib/server/studio-ai.ts";
+import { STUDIO_MODEL, allowPublicTurn, costOf, fromAnthropic, publicStudioMeter, studioMeter, toAnthropic } from "../lib/server/studio-ai.ts";
 
 describe("studio agent model", () => {
   test("uses the one approved model", () => {
@@ -86,5 +86,20 @@ describe("fromAnthropic", () => {
     expect(costOf({ input_tokens: 1_000_000 })).toBeCloseTo(0.1);
     expect(costOf({ output_tokens: 1_000_000 })).toBeCloseTo(0.5);
     expect(costOf({ cache_read_input_tokens: 1_000_000, cache_creation_input_tokens: 1_000_000 })).toBeCloseTo(0.135);
+  });
+});
+
+describe("public Insights agent limits (ADR-0022)", () => {
+  test("a separate, smaller budget than the operators'", () => {
+    expect(publicStudioMeter).not.toBe(studioMeter);
+    expect(publicStudioMeter.limit()).toBeLessThan(studioMeter.limit());
+  });
+  test("per-visitor turn limit, reset after a minute, independent per visitor", () => {
+    const t0 = 5_000_000;
+    let ok = 0;
+    for (let i = 0; i < 40; i++) if (allowPublicTurn("9.9.9.9", t0)) ok++;
+    expect(ok).toBe(30);
+    expect(allowPublicTurn("8.8.8.8", t0)).toBe(true);
+    expect(allowPublicTurn("9.9.9.9", t0 + 61_000)).toBe(true);
   });
 });

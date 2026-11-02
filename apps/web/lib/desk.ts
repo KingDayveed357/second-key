@@ -194,3 +194,63 @@ export function csvSafe(v: unknown): string {
   const masked = s.replace(/([A-Za-z0-9._%+-]{2})[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\.[A-Za-z]{2,})/g, "$1•••@$2");
   return /^[=+\-@\t\r]/.test(masked) ? `'${masked}` : masked;
 }
+
+// ---- Insights (AG Studio) ---------------------------------------------------------------------------
+
+/**
+ * Who made the PERSON decision. The engine's own decisions are rule outcomes, not a person's, so they never
+ * appear here: no review needed, nobody yet, or the person (or the auto-release) that resolved the hold.
+ */
+export function personOf(r: DeskRow, decider: (d: string) => string = (d) => d): string {
+  if (r.review === "Not needed") return "No review needed";
+  if (r.review === "Awaiting" || !r.decidedBy || r.decidedBy === "engine") return "Nobody yet";
+  return decider(r.decidedBy);
+}
+
+/** Money that did not move because Second Key, or the person it asked, stopped it. */
+export function stoppedCents(r: DeskRow): number {
+  const stopped = r.policy === "Refused by rule" || r.policy === "Order mismatch: cancelled" || ["Denied", "Cancelled by payer", "Auto-released", "Intent revoked"].includes(r.review);
+  return stopped ? (r.amountCents ?? 0) : 0;
+}
+
+export interface InsightRow {
+  incident: string;
+  detected: string;
+  workflow: DeskRow["workflow"];
+  counterparty: string;
+  amount: number | null;
+  pattern: string;
+  evidence: number;
+  policy: DeskRow["policy"];
+  review: DeskRow["review"];
+  decided_by: string;
+  authorization: DeskRow["authorization"];
+  capture: DeskRow["capture"];
+  resolution: Resolution;
+  stopped: number;
+}
+
+/**
+ * One AG Studio row per incident, USD only (the source's money fields are USD; other currencies are left
+ * out rather than summed together). The four facts stay separate fields. `decider` labels decided_by.
+ */
+export function insightRows(rows: DeskRow[], decider: (d: string) => string = (d) => d): InsightRow[] {
+  return rows
+    .filter((r) => (r.currency ?? "USD") === "USD")
+    .map((r) => ({
+      incident: r.id,
+      detected: r.detectedAt.slice(0, 16).replace("T", " "),
+      workflow: r.workflow,
+      counterparty: r.counterparty,
+      amount: r.amountCents == null ? null : r.amountCents / 100,
+      pattern: r.pattern,
+      evidence: r.evidenceCount,
+      policy: r.policy,
+      review: r.review,
+      decided_by: personOf(r, decider),
+      authorization: r.authorization,
+      capture: r.capture,
+      resolution: r.resolution,
+      stopped: stoppedCents(r) / 100,
+    }));
+}

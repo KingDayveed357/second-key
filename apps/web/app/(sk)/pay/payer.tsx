@@ -29,6 +29,7 @@ interface EvidenceView {
 
 const CHOICES = [
   { name: "scam_transfer", label: "An urgent call", source: "Phone call (prepared transcript)" },
+  { name: "bank_call_transfer", label: "A call from “the bank”", source: "Phone call (prepared transcript)" },
   { name: "benign_transfer", label: "A contractor's invoice", source: "Text messages" },
 ] as const;
 const PAYER = "Rose";
@@ -75,6 +76,20 @@ export function Payer() {
     try {
       setProtection(await api<ProtectionView>("/v1/me/protection", { asPayer: true }));
     } catch (e) {
+      // A session key the API no longer knows (demo database reset): start a fresh demo payer, once.
+      if ((e as { status?: number }).status === 401) {
+        const r = await fetch("/api/sk/session?reset=1", { method: "POST" }).catch(() => null);
+        if (r?.ok) {
+          try {
+            setProtection(await api<ProtectionView>("/v1/me/protection", { asPayer: true }));
+            setErr("");
+            return;
+          } catch (again) {
+            setErr(errText(again));
+            return;
+          }
+        }
+      }
       setErr(errText(e));
     }
   }, []);
@@ -243,7 +258,7 @@ export function Payer() {
         <div className="row between">
           <div className="sk-seg" role="group" aria-label="Demo scenario">
             {CHOICES.map((c) => (
-              <button key={c.name} aria-pressed={choice === c.name} disabled={phase !== "compose"} onClick={() => setChoice(c.name)}>
+              <button key={c.name} aria-pressed={choice === c.name} disabled={phase !== "compose"} onClick={() => (setChoice(c.name), c.name === "bank_call_transfer" && setShareWith(true))}>
                 {c.label}
               </button>
             ))}
@@ -267,7 +282,11 @@ export function Payer() {
               <Recipient info={info} amount={amount} />
               {threshold && (
                 <span className="xs muted">
-                  {info.payee.first_payment && info.amount_cents >= (thresholdCents ?? Infinity) ? `This payment matches your rule: ${TRUSTED} will be asked.` : "This payment doesn't match your rule."}
+                  {info.payee.first_payment && info.amount_cents >= (thresholdCents ?? Infinity)
+                    ? `This payment matches your rule: ${TRUSTED} will be asked.`
+                    : info.payee.first_payment
+                      ? `Below your rule's ${threshold}, so the rule won't pause it. Only what you share can.`
+                      : "You've paid them before, so your rule doesn't apply."}
                 </span>
               )}
               <div className="stack-sm">
@@ -282,8 +301,8 @@ export function Payer() {
                 {shareWith ? (
                   <div className="stack-sm">
                     <div className="row between">
-                      <span className="sk-section-title">{choice === "scam_transfer" ? "The phone call" : "The text conversation"}</span>
-                      <Demo>{choice === "scam_transfer" ? "Prepared transcript" : "Synthetic messages"}</Demo>
+                      <span className="sk-section-title">{choice === "benign_transfer" ? "The text conversation" : "The phone call"}</span>
+                      <Demo>{choice === "benign_transfer" ? "Synthetic messages" : "Prepared transcript"}</Demo>
                     </div>
                     <div className="sk-card tint" style={{ padding: "12px 8px" }}>
                       <Transcript conv={info.conversation} quotes={[]} self={PAYER} />
@@ -327,6 +346,12 @@ export function Payer() {
                         </p>
                         <p className="why">This is a rule you chose. It doesn&apos;t mean anything is wrong.</p>
                       </div>
+                    )}
+                    {!ruleCheck && quotes.length > 0 && threshold && (
+                      <p className="small">
+                        <strong>Your rule didn&apos;t pause this</strong>
+                        {info.payee.first_payment && info.amount_cents < (thresholdCents ?? 0) ? ` (${amount} is below your ${threshold})` : ""}. What you shared did.
+                      </p>
                     )}
                     {quotes.length > 0 && (
                       <p className="small">

@@ -6,8 +6,24 @@
 
 import { z } from "zod";
 import type { LlmClient, PromptDef } from "./llm.ts";
+import { loadPrompt } from "./prompts.ts";
 
-export const TACTICS = ["urgency", "secrecy", "impersonation", "authority_pressure", "unusual_payment_channel", "safe_account", "too_good_to_be_true", "emotional_manipulation", "remote_access", "threat"] as const;
+export const TACTICS = [
+  "urgency",
+  "secrecy",
+  "impersonation",
+  "authority_pressure",
+  "unusual_payment_channel",
+  "safe_account",
+  "too_good_to_be_true",
+  "emotional_manipulation",
+  "remote_access",
+  "threat",
+  // v2: a change of payee or account mid-conversation, and text addressed to an AI (one taxonomy for
+  // people and agents).
+  "payment_instruction_change",
+  "instruction_to_ai",
+] as const;
 export type Tactic = (typeof TACTICS)[number];
 
 export const DetectorOut = z.object({
@@ -71,6 +87,15 @@ A caller says "I'm from your water company, your supply is cut off in 20 minutes
 A saved contact writes "Our book club meal was $30 each, send it whenever" → no tactics; risk low.`,
 };
 
+/**
+ * v2 (packages/ai/prompts/manipulation.v2.md): adds payment_instruction_change and instruction_to_ai, asks
+ * for a reason specific to this conversation, and says an invitation to verify only reassures when it
+ * points somewhere the person already trusts. v1 stays for the S1 baseline.
+ */
+export const MANIPULATION_V2: PromptDef = loadPrompt("manipulation.v2.md");
+/** The prompt the engine and /try use. Every check records it as manipulation@<version>. */
+export const MANIPULATION_PROMPT = MANIPULATION_V2;
+
 export interface Conversation {
   context: string;
   lines: { speaker: string; text: string }[];
@@ -97,6 +122,8 @@ export interface Assessment {
   grounded: GroundedTactic[];
   ungrounded_quotes: string[];
   intervention: Intervention;
+  /** The deterministic rule that produced the intervention (see explainDecision). */
+  rule: string;
   confidence: number | null;
   model: string | null;
   usage?: unknown;
@@ -110,7 +137,12 @@ export function locate(conv: Conversation, quote: string): number {
   return conv.lines.findIndex((l) => norm(l.text).includes(q));
 }
 
-const SEVERE = ["safe_account", "remote_access", "unusual_payment_channel", "threat"];
+/**
+ * Fixed severity per tactic. Severe tactics ask the person to do something that is hard to undo or that
+ * hands control to someone else; one of them, quoted from the text, is enough to pause a payment.
+ */
+export const SEVERE_TACTICS: readonly Tactic[] = ["safe_account", "remote_access", "unusual_payment_channel", "threat", "payment_instruction_change", "instruction_to_ai"];
+export const severityOf = (t: Tactic): "severe" | "moderate" => (SEVERE_TACTICS.includes(t) ? "severe" : "moderate");
 
 export interface Decision {
   intervention: Intervention;
@@ -120,34 +152,52 @@ export interface Decision {
 }
 
 /**
- * Deterministic policy, with its reason. Anything other than a confident, grounded "low" leads to
- * human review. Model failure or schema failure → HOLD (fail closed). `decide` is defined from this,
+ * Deterministic policy over GROUNDED evidence (quotes code found in the text), with its reason. The
+ * model's own risk label is only a tie-breaker: it can never lift a pause that quoted evidence requires,
+ * and on its own (no verifiable quote) it can only ask for a check, labelled as not a finding.
+ *
+ *   E0 no usable answer                         → HOLD   (fail closed; a technical failure)
+ *   E1 a severe tactic, quoted                  → HOLD   (whatever the model's label)
+ *   E2 two or more different tactics, quoted    → HOLD
+ *   E3 one moderate tactic quoted, model concerned (medium/high)  → HOLD
+ *   E4 one moderate tactic quoted, model reads it as innocent (low) → PROCEED (quote still shown)
+ *   E5 model concerned, but nothing it quoted is in the text      → VERIFY (not a finding)
+ *   E6 model can't judge                                           → VERIFY
+ *   E7 nothing quoted, model sees nothing                          → PROCEED
+ *
+ * VERIFY also holds the payment (anything but PROCEED is "unknown"). `decide` is defined from this,
  * so the explanation shown to people can never drift from the rule that ran.
  */
 export function explainDecision(out: DetectorOutput | null, grounded: GroundedTactic[]): Decision {
-  if (!out) return { intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: "R0 fail closed", reason: "The model gave no usable answer, so the payment is held for review." };
-  if (out.risk === "high") return { intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: "R1 high risk", reason: "The model reported high risk, so the payment is held for review." };
-  if (out.risk === "medium")
-    return grounded.length
-      ? { intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: "R2 medium risk with evidence", reason: "Medium risk, and at least one quoted line was found in the text, so the payment is held for review." }
-      : { intervention: "VERIFY_BEFORE_PAYING", rule: "R3 medium risk without evidence", reason: "Medium risk, but none of the model's quotes could be found in the text, so verify before paying." };
-  if (out.risk === "insufficient_information") return { intervention: "VERIFY_BEFORE_PAYING", rule: "R4 not enough information", reason: "There isn't enough to judge, so verify before paying." };
-  const severe = grounded.filter((g) => SEVERE.includes(g.tactic));
-  return severe.length >= 2
-    ? { intervention: "VERIFY_BEFORE_PAYING", rule: "R5 low risk but severe patterns", reason: `The model said low risk, but found ${severe.length} severe patterns in the text, so verify before paying.` }
-    : { intervention: "PROCEED", rule: "R6 low risk", reason: "Low risk and no severe patterns: this check doesn't pause the payment. Transaction rules still apply." };
+  if (!out) return { intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: "E0 fail closed", reason: "The analysis gave no usable answer, so the payment is held. This is a technical failure, not a finding." };
+  const severe = [...new Set(grounded.filter((g) => severityOf(g.tactic) === "severe").map((g) => g.tactic))];
+  const distinct = new Set(grounded.map((g) => g.tactic));
+  const concerned = out.risk === "high" || out.risk === "medium";
+  const words = (ts: Iterable<string>) => [...ts].map((t) => t.replace(/_/g, " ")).join(", ");
+  if (severe.length)
+    return { intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: "E1 severe pattern quoted", reason: `The text asks for something hard to undo (${words(severe)}), with the exact words found in it, so the payment is held for review.` };
+  if (distinct.size >= 2)
+    return { intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: "E2 several patterns quoted", reason: `${distinct.size} different pressure patterns (${words(distinct)}), each with the exact words found in the text, so the payment is held for review.` };
+  if (distinct.size === 1 && concerned)
+    return { intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: "E3 one pattern, model concerned", reason: `One pressure pattern (${words(distinct)}) with the exact words found in the text, and the analysis rates the risk ${out.risk}, so the payment is held for review.` };
+  if (distinct.size === 1)
+    return { intervention: "PROCEED", rule: "E4 one pattern, innocent reading", reason: `One moderate pattern (${words(distinct)}) is quoted, but the analysis reads the conversation as legitimate, so this check doesn't pause the payment. Transaction rules still apply.` };
+  if (concerned)
+    return { intervention: "VERIFY_BEFORE_PAYING", rule: "E5 concern without evidence", reason: "The analysis was concerned, but nothing it quoted could be found in the text, so verify before paying. This is not a finding." };
+  if (out.risk === "insufficient_information") return { intervention: "VERIFY_BEFORE_PAYING", rule: "E6 not enough to judge", reason: "There isn't enough in the text to judge, so verify before paying." };
+  return { intervention: "PROCEED", rule: "E7 nothing found", reason: "No pressure patterns found in the text: this check doesn't pause the payment. Transaction rules still apply." };
 }
 
 export function decide(out: DetectorOutput | null, grounded: GroundedTactic[]): Intervention {
   return explainDecision(out, grounded).intervention;
 }
 
-export async function assess(ai: LlmClient, conv: Conversation, prompt: PromptDef = MANIPULATION_V1): Promise<Assessment> {
+export async function assess(ai: LlmClient, conv: Conversation, prompt: PromptDef = MANIPULATION_PROMPT): Promise<Assessment> {
   const input = JSON.stringify({ context: conv.context, conversation: conv.lines.map((l, i) => ({ line: i + 1, speaker: l.speaker, text: l.text })) }, null, 1);
   const r = await ai.structured(prompt, input, DetectorOut);
   const meta = { model: r.model ?? null, usage: r.usage, cost_usd: r.costUsd };
   if (!r.ok || r.value.confidence < 0 || r.value.confidence > 1) {
-    return { ok: false, failure: r.ok ? "confidence out of range" : r.reason, risk: "unavailable", grounded: [], ungrounded_quotes: [], intervention: "HOLD_FOR_TRUSTED_CONTACT", confidence: null, ...meta };
+    return { ok: false, failure: r.ok ? "confidence out of range" : r.reason, risk: "unavailable", grounded: [], ungrounded_quotes: [], intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: explainDecision(null, []).rule, confidence: null, ...meta };
   }
   const grounded: GroundedTactic[] = [];
   const ungrounded: string[] = [];
@@ -156,5 +206,6 @@ export async function assess(ai: LlmClient, conv: Conversation, prompt: PromptDe
     if (i < 0) ungrounded.push(t.quote);
     else grounded.push({ tactic: t.tactic, quote: t.quote, speaker: conv.lines[i]!.speaker, model_speaker: t.speaker, why: t.why, line_index: i });
   }
-  return { ok: true, raw: r.value, risk: r.value.risk, grounded, ungrounded_quotes: ungrounded, intervention: decide(r.value, grounded), confidence: r.value.confidence, ...meta };
+  const decision = explainDecision(r.value, grounded);
+  return { ok: true, raw: r.value, risk: r.value.risk, grounded, ungrounded_quotes: ungrounded, intervention: decision.intervention, rule: decision.rule, confidence: r.value.confidence, ...meta };
 }

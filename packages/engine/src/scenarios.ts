@@ -13,14 +13,20 @@ export interface Scenario {
   product: string;
   adapter: string;
   expected: "CAPTURE" | "REJECT" | "HOLD" | "VOID";
+  /**
+   * Agent scenarios: the product page the scripted demo agent read before choosing its cart, and whether
+   * it followed an instruction on that page. Narration for the demo; the engine judges only the cart and
+   * PayPal's order, never this page (unless the agent bought from it).
+   */
+  agent?: { read: string; followed_note: boolean };
   /** Second Key scenarios: the transfer the payer confirms (ADR-0016) and the conversation she was in. */
-  transfer?: { payee: TransferPolicyV1["payee"]; purpose: string; conversation: NonNullable<TransferRequest["conversation"]>; review_threshold_cents?: number };
+  transfer?: { payee: TransferPolicyV1["payee"]; purpose: string; conversation: NonNullable<TransferRequest["conversation"]>; review_threshold_cents?: number; amount_cents?: number };
 }
 
 // Synthetic, fictional conversations (the scam one is the transcript of the disclosed synthetic demo
 // call in secondkey/spikes/s3). No real person is depicted.
 const SCAM_CALL = {
-  context: "Phone call to Rose (78) from a caller claiming to be her grandson Danny; Rose is about to send money.",
+  context: "Phone call to Rose from a caller claiming to be her grandson Danny; Rose is about to send money.",
   lines: [
     { speaker: "Danny", text: "Grandma? It's me, Danny. I'm in real trouble. I got arrested after a car accident." },
     { speaker: "Rose", text: "Danny? You sound different." },
@@ -37,20 +43,52 @@ const BENIGN_CHAT = {
   ],
 };
 
+// The case only the evidence catches: a small payment below the payer's threshold, to someone new.
+const BANK_CALL = {
+  context: "Phone call to Rose from someone saying they are her bank's fraud team; Rose is about to send money.",
+  lines: [
+    { speaker: "Caller", text: "Hello Rose, this is Daniel from your bank's fraud team. We've stopped a suspicious payment on your account." },
+    { speaker: "Rose", text: "Oh dear. What do I need to do?" },
+    { speaker: "Caller", text: "To keep your savings safe, move $450 into a protected account in your name while we investigate. I'll give you the details." },
+    { speaker: "Caller", text: "Please also install the SecureView app so I can confirm the transfer with you, and stay on the line." },
+    { speaker: "Caller", text: "Don't mention this to anyone at the branch, the fraudster may work there." },
+  ],
+};
+
 export const SCENARIOS: Record<string, Scenario> = {
-  normal: { title: "Compliant cart: grey trail shoe, size 10, $84 at REI", product: "TRL-GRY-10", adapter: "standard", expected: "CAPTURE" },
+  normal: { title: "Compliant cart: grey trail shoe, size 10, $84 at REI", product: "TRL-GRY-10", adapter: "standard", expected: "CAPTURE", agent: { read: "TRL-GRY-10", followed_note: false } },
   reject: { title: "Excluded colour: white shoe at the same price", product: "TRL-WHT-10", adapter: "standard", expected: "REJECT" },
   over_budget: { title: "Over budget: $480 carbon racer", product: "TRL-PRO-10", adapter: "standard", expected: "REJECT" },
   hold: { title: "Missing fact: listing has no size", product: "TRL-NOSIZE", adapter: "standard", expected: "HOLD" },
   overpriced: { title: "In budget but nearly 2x the market price", product: "TRL-PRICEY", adapter: "standard", expected: "HOLD" },
-  injection: { title: "Prompt injection: listing text tells agents the shopper pre-approved another product", product: "TRL-INJECT", adapter: "standard", expected: "HOLD" },
-  cart_swap: { title: "Cart swap: checkout sends PayPal a white shoe at the same price", product: "TRL-GRY-10", adapter: "faulty:swap", expected: "VOID" },
+  injection: { title: "Prompt injection: listing text tells agents the shopper pre-approved another product", product: "TRL-INJECT", adapter: "standard", expected: "HOLD", agent: { read: "TRL-INJECT", followed_note: false } },
+  steered: {
+    title: "Steered agent: a page says the $480 Summit Pro was pre-approved, and the agent buys it",
+    product: "TRL-PRO-10",
+    adapter: "standard",
+    expected: "REJECT",
+    agent: { read: "TRL-INJECT", followed_note: true },
+  },
+  cart_swap: { title: "Cart swap: checkout sends PayPal a white shoe at the same price", product: "TRL-GRY-10", adapter: "faulty:swap", expected: "VOID", agent: { read: "TRL-GRY-10", followed_note: false } },
   scam_transfer: {
     title: "Second Key: grandparent-scam call, $1,800 to a new payee (simulated transfer, sandbox)",
     product: "transfer:payee_jmorgan",
     adapter: "standard",
     expected: "HOLD",
     transfer: { payee: { id: "payee_jmorgan", name: "J. Morgan", first_payment: true }, purpose: "Bail for Danny", conversation: SCAM_CALL, review_threshold_cents: 50000 },
+  },
+  bank_call_transfer: {
+    title: "Second Key: 'your bank' asks for $450 to a 'protected account' (below the rule; only the evidence pauses it)",
+    product: "transfer:payee_account_protection",
+    adapter: "standard",
+    expected: "HOLD",
+    transfer: {
+      payee: { id: "payee_account_protection", name: "Account Protection Services", first_payment: true },
+      purpose: "Protected account (as told by caller)",
+      conversation: BANK_CALL,
+      review_threshold_cents: 50000,
+      amount_cents: 45000,
+    },
   },
   benign_transfer: {
     title: "Second Key: contractor's agreed invoice, $1,800 (simulated transfer, sandbox)",
@@ -70,12 +108,12 @@ export function demoKnownPayees(d: EngineDeps): { id: string; email?: string }[]
 const DEMO_AMOUNT_CENTS = 180000;
 
 /** Second Key: exactly $1,800 to one payee, as the payer confirmed it (ADR-0016). */
-export function transferPolicy(now: Date, t: { payee: TransferPolicyV1["payee"]; purpose: string; review_threshold_cents?: number } = { payee: { ...DEMO_PAYEE }, purpose: "Kitchen renovation invoice" }): TransferPolicyV1 {
+export function transferPolicy(now: Date, t: { payee: TransferPolicyV1["payee"]; purpose: string; review_threshold_cents?: number; amount_cents?: number } = { payee: { ...DEMO_PAYEE }, purpose: "Kitchen renovation invoice" }): TransferPolicyV1 {
   return {
     version: 1,
     kind: "transfer",
     payee: { ...t.payee },
-    amount_cents: DEMO_AMOUNT_CENTS,
+    amount_cents: t.amount_cents ?? DEMO_AMOUNT_CENTS,
     currency: "USD",
     purpose: t.purpose,
     ...(t.review_threshold_cents !== undefined ? { review_threshold_cents: t.review_threshold_cents } : {}),
@@ -85,8 +123,8 @@ export function transferPolicy(now: Date, t: { payee: TransferPolicyV1["payee"];
 }
 
 /** The transfer request a payer's app sends: it restates the confirmed payee and amount. */
-export function transferRequest(intentId: string, conversation: TransferRequest["conversation"], payeeId: string = DEMO_PAYEE.id): TransferRequest {
-  return { kind: "transfer", intent_id: intentId, payee_id: payeeId, amount_cents: DEMO_AMOUNT_CENTS, currency: "USD", ...(conversation ? { conversation } : {}) };
+export function transferRequest(intentId: string, conversation: TransferRequest["conversation"], payeeId: string = DEMO_PAYEE.id, amountCents: number = DEMO_AMOUNT_CENTS): TransferRequest {
+  return { kind: "transfer", intent_id: intentId, payee_id: payeeId, amount_cents: amountCents, currency: "USD", ...(conversation ? { conversation } : {}) };
 }
 
 export function demoPolicy(now: Date) {
@@ -125,7 +163,7 @@ export async function runScenario(
     agent.tenantId,
     shopperId,
     t
-      ? { policy: transferPolicy(nowOf(d), t), source_text: `Send $1,800 to ${t.payee.name}: ${t.purpose} (simulated transfer, sandbox).` }
+      ? { policy: transferPolicy(nowOf(d), t), source_text: `Send $${((t.amount_cents ?? DEMO_AMOUNT_CENTS) / 100).toFixed(2)} to ${t.payee.name}: ${t.purpose} (simulated transfer, sandbox).` }
       : { policy: demoPolicy(nowOf(d)), source_text: "Trail-running shoes, size 10, under $90, not white, from REI or Backcountry." },
   );
   if (created.kind !== "ok") throw new Error(`scenario intent: ${created.detail}`);
@@ -135,7 +173,7 @@ export async function runScenario(
     d,
     agent,
     `scenario-${name}-${randomBytes(6).toString("hex")}`,
-    t ? transferRequest(created.intent.id, opts.evidence === false ? undefined : t.conversation, t.payee.id) : { intent_id: created.intent.id, retailer: "rei.com", lines: [{ product_id: scenario.product, quantity: 1 }] },
+    t ? transferRequest(created.intent.id, opts.evidence === false ? undefined : t.conversation, t.payee.id, t.amount_cents ?? DEMO_AMOUNT_CENTS) : { intent_id: created.intent.id, retailer: "rei.com", lines: [{ product_id: scenario.product, quantity: 1 }] },
     { adapter: scenario.adapter },
   );
   return { scenario, intentId: created.intent.id, result };

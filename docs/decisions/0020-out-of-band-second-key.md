@@ -65,7 +65,7 @@ Only the SHA-256 of a credential or inbox secret is ever stored.
 
 ## 4. Who may approve: hold reason classes
 
-Classification is deterministic code over the stored checks. No model output selects the approver.
+Classification is deterministic code over the stored checks. No model output selects the approver. Whether an `unknown` check is a technical failure is a stored fact (`checks.unavailable`, migration 0007), set at every failure path (model error, no usable verdict, a required check that never ran), never inferred from wording.
 
 | Class | From | Means | Resolution |
 |---|---|---|---|

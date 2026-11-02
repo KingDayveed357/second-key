@@ -63,28 +63,70 @@ const WITNESS_CONTEXT = `Witness screens AI shopping agents' carts before PayPal
 "Blocked value" means REJECTED plus VOIDED amounts. Witness never captures without a consumed single-use approval. You only read this data; you cannot approve, capture, void or change anything.`;
 
 
-export const witnessHarness = ({ api }: { api: any }) =>
-  createAiHarness(api, ({ tools, builtIn }: any) => {
-    const adapter = witnessAdapter();
-    const builtins = (["data", "page", "widget", "planning"] as const).map((id) => directLlmRunner({ ...builtIn[id], adapter }));
-    const analyst = directLlmRunner({
-      id: "witness-analyst",
-      name: "Witness analyst",
-      adapter,
-      description: "Answers questions about Witness payment decisions from the ledger: why purchases were rejected, held or voided, how much value each check blocked, and what is waiting for shoppers. Use for any question about decisions, reasons or amounts.",
-      schema: builtIn.data.schema,
-      instructions: () => `${WITNESS_CONTEXT}\nAnswer with numbers from queries, in two to four short sentences. Name the check (for example colour, size, market price, prompt injection, PayPal order match) in plain words.`,
-      tools: () => [tools.studio.viewSchema(), tools.studio.executeQuery()],
-    } as any);
-    const lead = directLlmRunner({
-      id: "witness-lead",
-      name: "Witness",
-      adapter,
-      description: "Front agent for the Witness ops console.",
-      schema: (s: any) => s.undefined(),
-      instructions: () =>
-        `${WITNESS_CONTEXT}\nYou coordinate. Delegate questions about decisions, reasons or amounts to witness-analyst. Delegate creating or changing widgets and pages to the page agent (it adds widgets) and the widget agent (it configures them). Keep replies short.`,
-      tools: () => [tools.studio.viewSchema(), tools.delegateTo(["witness-analyst", "page", "widget", "data", "planning"])],
-    } as any);
-    return { agents: [lead, analyst, ...builtins], primary: "witness-lead", promptStarters: PROMPT_STARTERS };
-  });
+/**
+ * A lead agent and a domain analyst (custom agents) over Studio's built-in page, widget, data and planning
+ * agents. The analyst only reads (viewSchema, executeQuery); nothing here can change a payment.
+ */
+function makeHarness(o: { prefix: string; name: string; context: string; analystFocus: string; analystDescription: string; starters: { label: string; prompt: string }[] }) {
+  return ({ api }: { api: any }) =>
+    createAiHarness(api, ({ tools, builtIn }: any) => {
+      const adapter = witnessAdapter();
+      const builtins = (["data", "page", "widget", "planning"] as const).map((id) => directLlmRunner({ ...builtIn[id], adapter }));
+      const analyst = directLlmRunner({
+        id: `${o.prefix}-analyst`,
+        name: `${o.name} analyst`,
+        adapter,
+        description: o.analystDescription,
+        schema: builtIn.data.schema,
+        instructions: () => `${o.context}\n${o.analystFocus}`,
+        tools: () => [tools.studio.viewSchema(), tools.studio.executeQuery()],
+      } as any);
+      const lead = directLlmRunner({
+        id: `${o.prefix}-lead`,
+        name: o.name,
+        adapter,
+        description: `Front agent for the ${o.name} dashboard.`,
+        schema: (s: any) => s.undefined(),
+        instructions: () =>
+          `${o.context}\nYou coordinate. Delegate questions about decisions, reasons or amounts to ${o.prefix}-analyst. Delegate creating or changing widgets and pages to the page agent (it adds widgets) and the widget agent (it configures them). Keep replies short.`,
+        tools: () => [tools.studio.viewSchema(), tools.delegateTo([`${o.prefix}-analyst`, "page", "widget", "data", "planning"])],
+      } as any);
+      return { agents: [lead, analyst, ...builtins], primary: `${o.prefix}-lead`, promptStarters: o.starters };
+    });
+}
+
+export const witnessHarness = makeHarness({
+  prefix: "witness",
+  name: "Witness",
+  context: WITNESS_CONTEXT,
+  analystDescription:
+    "Answers questions about Witness payment decisions from the ledger: why purchases were rejected, held or voided, how much value each check blocked, and what is waiting for shoppers. Use for any question about decisions, reasons or amounts.",
+  analystFocus: "Answer with numbers from queries, in two to four short sentences. Name the check (for example colour, size, market price, prompt injection, PayPal order match) in plain words.",
+  starters: PROMPT_STARTERS,
+});
+
+// ---- the Protection Desk's Insights (public, read-only; ADR-0022) --------------------------------
+
+const SECOND_KEY_CONTEXT = `Second Key pauses payments made under pressure: a payer's own rule, or quoted evidence of manipulation, holds a payment; only the payer's trusted contact can approve it; PayPal confirms the outcome. Data source "incidents" has one row per payment Second Key screened:
+- workflow: Transfer (a person paying) or Agent purchase (an AI agent buying for a person).
+- amount (USD) and counterparty (who was being paid, or what was being bought).
+- pattern: the strongest pressure pattern the AI OBSERVED with quoted evidence, or "None found". evidence: how many quoted lines.
+- policy: what the deterministic RULES decided (Review required, Refused by rule, Order mismatch: cancelled, Allowed).
+- review: what the PERSON decided (Not needed, Awaiting, Approved, Denied, Cancelled by payer, Auto-released, Intent revoked); decided_by: who.
+- authorization and capture: what PAYPAL recorded. resolution: Needs attention, In progress or Resolved.
+Keep these four facts separate: an AI observation is not a finding, a rule is not a person's decision, and a decision is not money moving until PayPal says so. "Stopped" means Refused by rule plus Order mismatch: cancelled plus Denied/Cancelled/Auto-released amounts. This is synthetic demo data on the PayPal sandbox. You only read it; you cannot approve, cancel or change anything.`;
+
+export const secondKeyHarness = makeHarness({
+  prefix: "secondkey",
+  name: "Second Key",
+  context: SECOND_KEY_CONTEXT,
+  analystDescription:
+    "Answers questions about Second Key incidents: what the AI observed, what the rules decided, who decided paused payments, what PayPal recorded, and how much money was stopped or is still waiting. Use for any question about incidents, decisions, patterns or amounts.",
+  analystFocus: "Answer with numbers from queries, in two to four short sentences. Say which of the four facts (AI observation, rule, person, PayPal) your answer is about.",
+  starters: [
+    { label: "Who decided the paused payments?", prompt: "Of the payments that were held for review, how many did each person or outcome decide? Show it as a chart." },
+    { label: "Which pressure patterns appear most?", prompt: "Which pressure patterns did the AI observe most often, and in how much money?" },
+    { label: "Money stopped, by workflow", prompt: "How much money did Second Key stop for transfers versus agent purchases?" },
+    { label: "What is waiting for a person?", prompt: "Which payments are still waiting for a person to decide?" },
+  ],
+});

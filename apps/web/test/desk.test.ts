@@ -1,7 +1,7 @@
 // Protection Desk row model: AI, policy, person and PayPal facts stay separate; views and lenses
 // select the right incidents; totals never mix currencies; CSV cells are safe.
 import { describe, expect, test } from "vitest";
-import { VIEWS, csvSafe, formatTotals, groupBy, toRow as rawToRow, totalsByCurrency, type Incident } from "../lib/desk.ts";
+import { VIEWS, csvSafe, formatTotals, groupBy, toRow as rawToRow, totalsByCurrency, type Incident, insightRows, stoppedCents } from "../lib/desk.ts";
 import { tacticOf } from "../lib/sk.ts";
 
 const toRow = (i: Incident, payouts = true) => rawToRow(i, payouts, (t) => tacticOf(t).label);
@@ -87,5 +87,31 @@ describe("csvSafe", () => {
     expect(csvSafe("=HYPERLINK(1)")).toBe("'=HYPERLINK(1)");
     expect(csvSafe("paid sb-abcd1234567@personal.example.com")).toBe("paid sb•••@personal.example.com");
     expect(csvSafe(null)).toBe("");
+  });
+});
+
+describe("Insights rows (AG Studio source)", () => {
+  const row = (over: Partial<Incident>) => toRow({ ...base, ...over });
+  test("money counts as stopped only when a rule or a person stopped it", () => {
+    expect(stoppedCents(row({ state: "REJECTED", outcome: "REJECT", hold_auto_void_at: null, amount_cents: 48000 }))).toBe(48000);
+    expect(stoppedCents(row({ state: "VOIDED", outcome: "VOID", hold_auto_void_at: null, amount_cents: 8400 }))).toBe(8400); // order mismatch
+    expect(stoppedCents(row({ state: "VOIDED", outcome: "VOID", hold_auto_void_at: "2026-11-05T00:00:00Z", hold_resolution: "DENIED", amount_cents: 180000 }))).toBe(180000);
+    expect(stoppedCents(row({ state: "CAPTURED", outcome: "CAPTURE", hold_auto_void_at: null, amount_cents: 8400 }))).toBe(0);
+    expect(stoppedCents(row({ state: "HELD", outcome: "HOLD", hold_auto_void_at: "2026-11-05T00:00:00Z", amount_cents: 180000 }))).toBe(0); // still waiting
+  });
+  test("keeps the four facts separate, labels who decided, and leaves out non-USD rows instead of mixing currencies", () => {
+    const rows = insightRows(
+      [
+        row({ id: "a", state: "VOIDED", outcome: "VOID", hold_auto_void_at: "2026-11-05T00:00:00Z", hold_resolution: "DENIED", decided_by: "guardian:g1", top_tactic: "secrecy", evidence_count: 3, amount_cents: 180000 }),
+        row({ id: "b", currency: "EUR", amount_cents: 5000 }),
+        row({ id: "c", state: "CAPTURED", outcome: "CAPTURE", hold_auto_void_at: null, hold_resolution: null, decided_by: null, amount_cents: 8400 }),
+      ],
+      (d) => (d.startsWith("guardian:") ? "Trusted contact" : d),
+    );
+    expect(rows.map((r) => r.incident)).toEqual(["a", "c"]);
+    expect(rows[0]).toMatchObject({ policy: "Review required", review: "Denied", decided_by: "Trusted contact", evidence: 3, amount: 1800, stopped: 1800 });
+    expect(rows[1]).toMatchObject({ review: "Not needed", decided_by: "No review needed", stopped: 0 });
+    // The engine's own HOLD is a rule outcome, never "who decided".
+    expect(insightRows([row({ id: "d", decided_by: "engine" })])[0]).toMatchObject({ review: "Awaiting", decided_by: "Nobody yet" });
   });
 });

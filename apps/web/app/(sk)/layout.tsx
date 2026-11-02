@@ -22,10 +22,10 @@ export default function SecondKeyLayout({ children }: { children: React.ReactNod
       </main>
       <footer className="sk-foot">
         <Live />
-        <Demo>Demo data: synthetic people, conversations and link delivery</Demo>
+        <Demo>Demo data: synthetic people, conversations and the trusted contact&apos;s phone</Demo>
         <span>PayPal sandbox only. No real money moves.</span>
-        <Link href="/witness" style={{ marginLeft: "auto" }}>
-          Witness (agent spend control)
+        <Link href="/try" style={{ marginLeft: "auto" }}>
+          Test the analysis on your own text
         </Link>
       </footer>
     </div>

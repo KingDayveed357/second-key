@@ -101,9 +101,34 @@ export function fromAnthropic(res: Record<string, any>) {
 export const costOf = (u: Record<string, number | undefined>) =>
   ((u.input_tokens ?? 0) * PRICE.input + (u.output_tokens ?? 0) * PRICE.output + (u.cache_read_input_tokens ?? 0) * PRICE.cacheRead + (u.cache_creation_input_tokens ?? 0) * PRICE.cacheWrite) / 1_000_000;
 
-/** Per-process spend meter for the Studio agent (default $0.50, WITNESS_STUDIO_AI_MAX_SPEND_USD). */
+/** Per-process spend meter for the Studio agent with a console session (default $0.50, WITNESS_STUDIO_AI_MAX_SPEND_USD). */
 export const studioMeter = {
   spent: 0,
   calls: 0,
   limit: () => Number(process.env.WITNESS_STUDIO_AI_MAX_SPEND_USD ?? 0.5),
 };
+
+/**
+ * The public Desk's Insights agent (ADR-0022): its own, smaller budget, so public traffic can never use
+ * the operators' budget (default $0.25, WITNESS_STUDIO_AI_PUBLIC_MAX_SPEND_USD). Set
+ * WITNESS_STUDIO_AI_PUBLIC=0 to require a console session again.
+ */
+export const publicStudioMeter = {
+  spent: 0,
+  calls: 0,
+  limit: () => Number(process.env.WITNESS_STUDIO_AI_PUBLIC_MAX_SPEND_USD ?? 0.25),
+};
+export const publicStudioEnabled = () => process.env.WITNESS_STUDIO_AI_PUBLIC !== "0";
+
+/** Per-visitor limit for the public agent: one prompt fans out into several turns, so it counts turns. */
+const PUBLIC_TURNS_PER_MINUTE = Number(process.env.WITNESS_STUDIO_AI_PUBLIC_PER_MINUTE ?? 30);
+const visitors = new Map<string, { start: number; n: number }>();
+export function allowPublicTurn(client: string, now = Date.now()): boolean {
+  const v = visitors.get(client);
+  if (!v || now - v.start >= 60_000) {
+    if (visitors.size > 10_000) visitors.clear();
+    visitors.set(client, { start: now, n: 1 });
+    return true;
+  }
+  return ++v.n <= PUBLIC_TURNS_PER_MINUTE;
+}

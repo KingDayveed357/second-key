@@ -27,7 +27,12 @@ export function QuoteCard({ e, sourceLabel, active, onFocus }: { e: Evidence; so
         {e.speaker ? `${e.speaker} · ` : ""}
         {sourceLabel}
       </figcaption>
-      {t.plain && <p className="why">{t.plain}</p>}
+      {e.why && <p className="why">{e.why}</p>}
+      {t.plain && (
+        <p className="why" style={e.why ? { opacity: 0.75, fontSize: "var(--text-xs)" } : undefined}>
+          {t.plain}
+        </p>
+      )}
     </figure>
   );
 }

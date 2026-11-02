@@ -392,6 +392,28 @@ describe("guardian lifecycle with payments pending", () => {
   });
 });
 
+describe("the case only the evidence catches (ADR-0021)", () => {
+  test("$450 to someone new is below Rose's rule; the shared call alone pauses it, for Sarah, as evidence (not the rule)", async () => {
+    const { payer } = await protectedPayer();
+    const r = await post("/v1/me/demo/transfers/bank_call_transfer", payer.key);
+    const id = r.json().purchase.id as string;
+    expect(await stateOf(id)).toBe("HELD");
+    expect(await holdOf(id)).toMatchObject({ approver: "guardian", reason_classes: ["EVIDENCE_CONCERN"] });
+    const checks = (await h.pool.query("SELECT check_id, result, detail FROM checks WHERE purchase_id = $1 AND phase = 'SCREEN'", [id])).rows;
+    expect(checks.find((c) => c.check_id === "transfer.review_rule")).toMatchObject({ result: "pass" });
+    expect(checks.find((c) => c.check_id === "transfer.review_rule").detail).toMatch(/below the threshold/);
+    expect(checks.find((c) => c.check_id === "ai.manipulation")).toMatchObject({ result: "unknown" });
+    expect(checks.find((c) => c.check_id === "ai.manipulation").detail).toMatch(/E1 severe pattern quoted/);
+  });
+
+  test("without the conversation, nothing pauses it: the honest boundary of a rule-plus-evidence design", async () => {
+    const { payer } = await protectedPayer();
+    const r = await post("/v1/me/demo/transfers/bank_call_transfer?evidence=none", payer.key);
+    await h.drain();
+    expect(await stateOf(r.json().purchase.id)).toBe("CAPTURED");
+  });
+});
+
 describe("assessment failures and tenant isolation", () => {
   test("AI unavailable: held, classed ASSESSMENT_UNAVAILABLE (not evidence), guardian decides; never PROCEED", async () => {
     const { payer } = await protectedPayer();

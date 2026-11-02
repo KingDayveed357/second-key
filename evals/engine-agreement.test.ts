@@ -12,7 +12,7 @@ describe("eval function agrees with the engine", () => {
     test(name, async () => {
       const now = new Date("2026-10-12T12:00:00Z");
       const r = s.transfer
-        ? await evaluateScreen(harnessAi(), transferPolicy(now, s.transfer), transferRequest("int", s.transfer.conversation, s.transfer.payee.id), new Map(), { now })
+        ? await evaluateScreen(harnessAi(), transferPolicy(now, s.transfer), transferRequest("int", s.transfer.conversation, s.transfer.payee.id, s.transfer.amount_cents), new Map(), { now })
         : await evaluateScreen(harnessAi(), demoPolicy(now), { intent_id: "int", retailer: "rei.com", lines: [{ product_id: s.product, quantity: 1 }] }, (await new FixtureCatalog().getProducts([s.product])).facts, { now });
       // The cart swap happens after screening (in PayPal's order), so screening says CAPTURE.
       expect(r.outcome).toBe(s.expected === "VOID" ? "CAPTURE" : s.expected);

@@ -161,7 +161,7 @@ function denyOf(who: string, guardianHold: boolean): { resolution: "DENIED" | "C
 
 /** A wrong credential on a guardian hold counts towards its attempt limit. */
 async function noteFailure(d: EngineDeps, ctx: Ctx, actor: HoldActor, r: HoldResult<string>) {
-  if (r.kind === "error" && r.status === 403 && "token" in actor && ctx.h?.approver === "guardian") await recordFailedCredential(d, ctx.p.id);
+  if (r.kind === "error" && r.status === 403 && "token" in actor && ctx.h?.approver === "guardian") await recordFailedCredential(d, ctx.p.tenantId, ctx.p.id);
 }
 
 export async function getHold(d: EngineDeps, purchaseId: string, actor: HoldActor, tenantId?: string): Promise<HoldResult<HoldView>> {

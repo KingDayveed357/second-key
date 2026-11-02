@@ -78,7 +78,7 @@ export async function lockPurchase(tx: Tx, tenantId: string, id: string): Promis
 export async function recordChecks(tx: Tx, purchaseId: string, phase: "SCREEN" | "VERIFY" | "RECHECK" | "CONTEXT", list: Check[]): Promise<void> {
   if (!list.length) return;
   await tx.db.insert(checks).values(
-    list.map((c) => ({ purchaseId, phase, checkId: c.id, kind: c.kind ?? ("deterministic" as const), result: c.result, detail: c.detail, line: c.line ?? null, model: c.model ?? null, promptVersion: c.prompt_version ?? null, evidence: c.evidence?.length ? c.evidence : null })),
+    list.map((c) => ({ purchaseId, phase, checkId: c.id, kind: c.kind ?? ("deterministic" as const), result: c.result, detail: c.detail, line: c.line ?? null, model: c.model ?? null, promptVersion: c.prompt_version ?? null, evidence: c.evidence?.length ? c.evidence : null, unavailable: c.unavailable === true })),
   );
 }
 
