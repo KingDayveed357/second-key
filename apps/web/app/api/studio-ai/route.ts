@@ -1,7 +1,9 @@
-// One Studio-agent turn: console session required; Haiku only; spend-capped; key never leaves here.
-import { cookies } from "next/headers";
+// One Studio-agent turn. Operators (console session) use the operator budget; anyone else uses the
+// public Insights budget (ADR-0022), smaller, separate and per-visitor rate limited. Haiku only;
+// the key never leaves here; the agent reads only what AG Studio passes it and can't act on anything.
+import { cookies, headers } from "next/headers";
 import { SESSION_COOKIE, validSession } from "../../../lib/server/session";
-import { STUDIO_MODEL, costOf, fromAnthropic, studioMeter, toAnthropic, type StudioTurn } from "../../../lib/server/studio-ai";
+import { STUDIO_MODEL, allowPublicTurn, costOf, fromAnthropic, publicStudioEnabled, publicStudioMeter, studioMeter, toAnthropic, type StudioTurn } from "../../../lib/server/studio-ai";
 
 export const dynamic = "force-dynamic";
 // One prompt fans out into several turns across Studio's agents, so this has its own per-minute limit.
@@ -11,10 +13,16 @@ let used = 0;
 const problem = (status: number, title: string, detail?: string) => Response.json({ title, status, ...(detail ? { detail } : {}) }, { status });
 
 export async function POST(req: Request) {
-  if (!validSession((await cookies()).get(SESSION_COOKIE)?.value)) return problem(401, "Sign in to the console");
+  const operator = validSession((await cookies()).get(SESSION_COOKIE)?.value);
+  if (!operator && !publicStudioEnabled()) return problem(401, "Sign in to the console");
+  const meter = operator ? studioMeter : publicStudioMeter;
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return problem(503, "Studio agent not configured", "ANTHROPIC_API_KEY is not set on the web service");
-  if (studioMeter.spent >= studioMeter.limit()) return problem(429, "Studio agent budget reached", `This process has used its $${studioMeter.limit()} limit`);
+  if (meter.spent >= meter.limit()) return problem(429, "Studio agent budget reached", `The ${operator ? "operator" : "public demo"} budget of $${meter.limit()} for this process is used up`);
+  if (!operator) {
+    const client = ((await headers()).get("x-forwarded-for") ?? "").split(",")[0]!.trim() || "local";
+    if (!allowPublicTurn(client)) return problem(429, "Slow down", "The demo agent allows a few questions a minute per visitor");
+  }
   const now = Date.now();
   if (now - windowStart >= 60_000) {
     windowStart = now;
@@ -45,9 +53,9 @@ export async function POST(req: Request) {
     return problem(502, "Model unreachable");
   }
   const data = await res.json().catch(() => null);
-  studioMeter.calls++;
+  meter.calls++;
   if (!res.ok || !data) return problem(502, "Model error", data?.error?.type ?? `HTTP ${res.status}`); // never echo provider details or keys
   if (data.model && data.model !== STUDIO_MODEL) return problem(502, "Unexpected model", String(data.model));
-  studioMeter.spent += costOf(data.usage ?? {});
-  return Response.json(fromAnthropic(data), { headers: { "x-witness-studio-spent-usd": studioMeter.spent.toFixed(5) } });
+  meter.spent += costOf(data.usage ?? {});
+  return Response.json(fromAnthropic(data), { headers: { "x-witness-studio-spent-usd": meter.spent.toFixed(5) } });
 }

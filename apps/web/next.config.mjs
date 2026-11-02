@@ -8,6 +8,13 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   typescript: { ignoreBuildErrors: true },
+  // Witness was folded into Second Key: its judge page is the developer conformance suite now.
+  async redirects() {
+    return [
+      { source: "/witness", destination: "/developers", permanent: false },
+      { source: "/shop", destination: "/pay", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

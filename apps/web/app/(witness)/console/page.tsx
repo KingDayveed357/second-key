@@ -3,7 +3,7 @@ import { SESSION_COOKIE, consoleConfigured, validSession } from "../../../lib/se
 import { ConsoleShell } from "../../_components/console-shell";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Ops console · Witness" };
+export const metadata = { title: "Operator console · Second Key" };
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   if (!consoleConfigured()) {

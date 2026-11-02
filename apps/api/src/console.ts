@@ -286,7 +286,8 @@ export function registerConsole(app: FastifyInstance, d: EngineDeps, auth: Auth,
       would_reach_paypal: r.outcome !== "REJECT",
       note: "Screening only: no purchase, order or PayPal call was made. CAPTURE means Witness would authorize and capture after the three-way match on PayPal's order.",
       policy: { category: policy.category, max_total: "90.00 USD", size: policy.hard.size, excluded_colors: policy.hard.excluded_colors, retailers: policy.retailers },
-      checks: r.checks.map((c) => ({ id: c.id, result: c.result, detail: c.detail })),
+      // `unavailable`: the check couldn't run (a technical failure, so it holds), not a finding.
+      checks: r.checks.map((c) => ({ id: c.id, result: c.result, detail: c.detail, unavailable: c.unavailable === true })),
       ai_ms: r.ai_ms,
     };
   });

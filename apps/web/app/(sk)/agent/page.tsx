@@ -7,8 +7,8 @@ export default function Page() {
     <div className="stack-lg">
       <header className="stack-sm" style={{ maxWidth: 720 }}>
         <span className="sk-section-title">The same safety, for AI agents</span>
-        <h1 style={{ fontSize: "var(--text-2xl)" }}>An agent shopping for Rose meets a page that gives it orders.</h1>
-        <p className="soft">The same engine that pauses a pressured transfer pauses an agent&apos;s purchase when the content it read tries to steer it, and sends it to the same review.</p>
+        <h1 style={{ fontSize: "var(--text-2xl)" }}>An AI agent can be fooled. The money can&apos;t.</h1>
+        <p className="soft">Rose&apos;s shopping agent spends within what she confirmed. Second Key checks the cart against her request using product facts it fetches itself, and checks the order PayPal actually stored before any capture. A steered agent, a page giving orders, and a swapped checkout are each caught at a different step.</p>
       </header>
       <Agent />
     </div>

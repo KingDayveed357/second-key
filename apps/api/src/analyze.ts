@@ -6,7 +6,7 @@
 import { createHash } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { MANIPULATION_V1, UnavailableLlm, assess, explainDecision, promptRef, type Conversation, type LlmClient } from "@witness/ai";
+import { MANIPULATION_PROMPT, UnavailableLlm, assess, explainDecision, promptRef, type Conversation, type LlmClient } from "@witness/ai";
 
 type Auth = (...scopes: string[]) => (req: FastifyRequest, reply: FastifyReply) => Promise<unknown>;
 type Problem = (reply: FastifyReply, status: number, title: string, detail?: string) => FastifyReply;
@@ -138,7 +138,7 @@ export function registerAnalyze(app: FastifyInstance, auth: Auth, problem: Probl
         legitimate_explanation: a.raw?.legitimate_explanation ?? null,
         needs_independent_verification: a.raw?.needs_independent_verification ?? null,
         model: a.model,
-        prompt_version: promptRef(MANIPULATION_V1),
+        prompt_version: promptRef(MANIPULATION_PROMPT),
         latency_ms: clock() - t0,
       },
       policy: {

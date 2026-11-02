@@ -55,12 +55,12 @@ describe("/v1/demo/analyze", () => {
     const purchases = (await h.pool.query("SELECT count(*)::int AS n FROM purchases")).rows[0].n;
     const calls = h.fake.calls.length;
     const r = (await post({ sample: "grandparent-call" })).json();
-    expect(r.analysis).toMatchObject({ ok: true, risk: "high", prompt_version: "manipulation@v1" });
+    expect(r.analysis).toMatchObject({ ok: true, risk: "high", prompt_version: "manipulation@v2" });
     expect(r.analysis.findings).toHaveLength(1);
     const f = r.analysis.findings[0];
     expect(r.conversation.lines[f.line].text).toContain(f.quote);
     expect(r.analysis.discarded_quotes).toEqual(["wire it to the escrow agent tonight"]);
-    expect(r.policy).toMatchObject({ intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: "R1 high risk", check_result: "unknown" });
+    expect(r.policy).toMatchObject({ intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: "E3 one pattern, model concerned", check_result: "unknown" });
     expect(r.no_payment).toMatch(/no intent, payment or PayPal call/);
     expect((await h.pool.query("SELECT count(*)::int AS n FROM purchases")).rows[0].n).toBe(purchases);
     expect(h.fake.calls.length).toBe(calls);
@@ -68,7 +68,7 @@ describe("/v1/demo/analyze", () => {
 
   test("a legitimate message passes this check, and the policy says so in words", async () => {
     const r = (await post({ sample: "agreed-invoice" })).json();
-    expect(r.policy).toMatchObject({ intervention: "PROCEED", rule: "R6 low risk", check_result: "pass" });
+    expect(r.policy).toMatchObject({ intervention: "PROCEED", rule: "E7 nothing found", check_result: "pass" });
     expect(r.analysis.findings).toEqual([]);
   });
 
@@ -88,7 +88,7 @@ describe("/v1/demo/analyze", () => {
     await bare.ready();
     const r = (await bare.inject({ method: "POST", url: "/v1/demo/analyze", headers: { authorization: `Bearer ${demoKey}` }, payload: { sample: "agreed-invoice" } })).json();
     expect(r.analysis).toMatchObject({ ok: false, failure: "timeout", findings: [] });
-    expect(r.policy).toMatchObject({ intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: "R0 fail closed" });
+    expect(r.policy).toMatchObject({ intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: "E0 fail closed" });
     await bare.close();
   });
 

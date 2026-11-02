@@ -94,6 +94,11 @@ services:
         sync: false
       - key: WITNESS_STUDIO_AI_MAX_SPEND_USD
         value: "0.50"
+      # Public Insights agent on the Desk (ADR-0022): its own, smaller budget; "0" turns it off.
+      - key: WITNESS_STUDIO_AI_PUBLIC
+        value: "1"
+      - key: WITNESS_STUDIO_AI_PUBLIC_MAX_SPEND_USD
+        value: "0.25"
 
 envVarGroups:
   - name: witness-shared

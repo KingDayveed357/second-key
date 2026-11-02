@@ -37,6 +37,11 @@ export interface Check {
   defers_to?: string;
   /** Grounded quotes behind an AI check (Second Key). */
   evidence?: EvidenceItem[];
+  /**
+   * True when the check is "unknown" because it couldn't run or gave no usable answer (timeout, refusal,
+   * malformed output, budget, not run at all): a technical failure, never a finding (ADR-0020 §4).
+   */
+  unavailable?: boolean;
 }
 
 /** Untrusted conversation the payer was in when asked to pay (Second Key). */

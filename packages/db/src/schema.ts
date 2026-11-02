@@ -91,6 +91,8 @@ export const checks = pgTable("checks", {
   promptVersion: text("prompt_version"),
   /** Grounded evidence for AI checks (0003); null for deterministic checks. */
   evidence: jsonb("evidence"),
+  /** The check couldn't run or gave no usable answer: a technical failure, not a finding (0007). */
+  unavailable: boolean("unavailable").notNull().default(false),
   createdAt: ts("created_at").notNull().defaultNow(),
 });
 

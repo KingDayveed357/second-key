@@ -7,7 +7,7 @@ import { z } from "zod";
 import { CURRENCIES, PolicyV1, numberToCents, type Check, type EvidenceItem, type ProductFacts, type ResolvedCart } from "@witness/core";
 import { promptRef, type AiResult, type LlmClient } from "./llm.ts";
 import { PROMPTS } from "./prompts.ts";
-import { MANIPULATION_V1, assess, type Conversation } from "./manipulation.ts";
+import { MANIPULATION_PROMPT, assess, type Conversation } from "./manipulation.ts";
 
 export const THRESHOLDS = { injection: 0.5, semantic: 0.8, integrity: 0.8, intentReview: 0.6 } as const;
 
@@ -34,7 +34,7 @@ export async function checkInjection(ai: LlmClient, facts: ProductFacts[]): Prom
     .join("\n\n");
   const r = await ai.structured(PROMPTS.injection, input, InjectionOut);
   if (!r.ok || !inUnit(r.value.confidence)) {
-    return { id: "ai.injection", result: "unknown", detail: `injection check unavailable (${r.ok ? "confidence out of range" : r.reason}); a human must decide`, ...aiMeta(r) };
+    return { id: "ai.injection", result: "unknown", detail: `injection check unavailable (${r.ok ? "confidence out of range" : r.reason}); a human must decide`, ...aiMeta(r), unavailable: true };
   }
   if (r.value.suspected && r.value.confidence >= THRESHOLDS.injection) {
     const span = r.value.spans[0];
@@ -153,12 +153,12 @@ export async function verifyListing(ai: LlmClient, policy: PolicyV1, facts: Prod
     for (const f of facts) {
       const id = `ai.soft:${s.id}`;
       if (!r.ok) {
-        out.push({ id, line: f.product_id, result: "unknown", detail: `"${s.text}": semantic check unavailable (${r.reason})`, ...aiMeta(r) });
+        out.push({ id, line: f.product_id, result: "unknown", detail: `"${s.text}": semantic check unavailable (${r.reason})`, ...aiMeta(r), unavailable: true });
         continue;
       }
       const v = r.value.verdicts.find((x) => x.constraint_id === s.id && x.product_id === f.product_id);
       if (!v || !inUnit(v.confidence)) {
-        out.push({ id, line: f.product_id, result: "unknown", detail: `"${s.text}": no usable verdict from the model`, ...aiMeta(r) });
+        out.push({ id, line: f.product_id, result: "unknown", detail: `"${s.text}": no usable verdict from the model`, ...aiMeta(r), unavailable: true });
         continue;
       }
       const grounded = evidenceHolds(f, v.evidence_field, v.evidence_quote);
@@ -175,12 +175,12 @@ export async function verifyListing(ai: LlmClient, policy: PolicyV1, facts: Prod
     for (const f of facts) {
       const id = `ai.integrity:${q.id}`;
       if (!r.ok) {
-        out.push({ id, line: f.product_id, result: "unknown", detail: `listing integrity (${q.id}) unavailable (${r.reason}); a human must decide`, ...aiMeta(r) });
+        out.push({ id, line: f.product_id, result: "unknown", detail: `listing integrity (${q.id}) unavailable (${r.reason}); a human must decide`, ...aiMeta(r), unavailable: true });
         continue;
       }
       const v = r.value.integrity.find((x) => x.requirement_id === q.id && x.product_id === f.product_id);
       if (!v || !inUnit(v.confidence)) {
-        out.push({ id, line: f.product_id, result: "unknown", detail: `listing integrity (${q.id}): no usable verdict from the model`, ...aiMeta(r) });
+        out.push({ id, line: f.product_id, result: "unknown", detail: `listing integrity (${q.id}): no usable verdict from the model`, ...aiMeta(r), unavailable: true });
         continue;
       }
       const confident = v.confidence >= THRESHOLDS.integrity;
@@ -248,7 +248,7 @@ export function requiredAiChecks(kind: "shopping" | "transfer", hasConversation:
 /** Add an "unknown" (HOLD) check for every required AI check that did not run. */
 export function enforceRequired(required: string[], checks: Check[]): Check[] {
   const missing = required.filter((id) => !checks.some((c) => c.id === id));
-  return [...checks, ...missing.map((id) => ({ id, result: "unknown" as const, detail: `required check ${id} did not run; held for review`, kind: "ai" as const }))];
+  return [...checks, ...missing.map((id) => ({ id, result: "unknown" as const, detail: `required check ${id} did not run; held for review`, kind: "ai" as const, unavailable: true }))];
 }
 
 /**
@@ -273,14 +273,14 @@ export async function screenPaymentAi(ai: LlmClient, subject: AiSubject, convers
  */
 export async function checkManipulation(ai: LlmClient, conversation: Conversation): Promise<Check> {
   const a = await assess(ai, conversation);
-  const meta = { kind: "ai" as const, model: a.model ?? "none", prompt_version: promptRef(MANIPULATION_V1) };
-  if (!a.ok) return { id: "ai.manipulation", result: "unknown", detail: `manipulation check unavailable (${a.failure}); held for review`, ...meta };
+  const meta = { kind: "ai" as const, model: a.model ?? "none", prompt_version: promptRef(MANIPULATION_PROMPT) };
+  if (!a.ok) return { id: "ai.manipulation", result: "unknown", detail: `manipulation check unavailable (${a.failure}); held for review`, ...meta, unavailable: true };
   const brief = a.grounded.slice(0, 4).map((g) => `${g.tactic.replace(/_/g, " ")}: "${g.quote.slice(0, 120)}" (${g.speaker.slice(0, 40)})`);
   const summary = brief.length ? `; ${brief.join("; ")}` : "";
   const evidence: EvidenceItem[] = a.grounded.slice(0, 8).map((g) => ({ tactic: g.tactic, quote: g.quote.slice(0, 300), source: "conversation", speaker: g.speaker.slice(0, 80), line: g.line_index, why: g.why.slice(0, 300) }));
-  if (a.intervention === "PROCEED") return { id: "ai.manipulation", result: "pass", detail: `no manipulation found (risk ${a.risk})${summary}`, ...meta, evidence };
+  if (a.intervention === "PROCEED") return { id: "ai.manipulation", result: "pass", detail: `no pause from the conversation (${a.rule}; model risk ${a.risk})${summary}`, ...meta, evidence };
   const what = a.intervention === "HOLD_FOR_TRUSTED_CONTACT" ? "hold for trusted contact" : "verify before paying";
-  return { id: "ai.manipulation", result: "unknown", detail: `${what}: manipulation risk ${a.risk}${summary}`, ...meta, evidence };
+  return { id: "ai.manipulation", result: "unknown", detail: `${what} (${a.rule}; model risk ${a.risk})${summary}`, ...meta, evidence };
 }
 
 /**

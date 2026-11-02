@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { SESSION_COOKIE, consoleConfigured, validSession } from "../../../lib/server/session";
-import { Desk } from "./desk";
+import { Workspace } from "./workspace";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Protection Desk · Second Key" };
@@ -47,7 +47,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ e
     <div className="stack-lg">
       {header}
       <Suspense>
-        <Desk mode={operator ? "operator" : "public"} />
+        <Workspace mode={operator ? "operator" : "public"} licenseKey={process.env.AG_STUDIO_LICENSE_KEY ?? ""} />
       </Suspense>
     </div>
   );

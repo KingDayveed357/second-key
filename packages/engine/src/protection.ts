@@ -249,11 +249,11 @@ export async function screeningProtection(tx: Tx, tenantId: string, shopperId: s
 export type ReasonClass = "POLICY_REVIEW" | "EVIDENCE_CONCERN" | "ASSESSMENT_UNAVAILABLE" | "LISTING_OR_FACTS";
 
 /** Deterministic classification of why a payment is held (ADR-0020 §4). No model output picks the approver. */
-export function classifyHold(unknowns: { checkId: string; kind: string; detail: string }[]): ReasonClass[] {
+export function classifyHold(unknowns: { checkId: string; kind: string; unavailable: boolean }[]): ReasonClass[] {
   const out = new Set<ReasonClass>();
   for (const c of unknowns) {
     if (c.checkId === "transfer.review_rule") out.add("POLICY_REVIEW");
-    else if (c.kind === "ai" && /\bunavailable\b/.test(c.detail)) out.add("ASSESSMENT_UNAVAILABLE");
+    else if (c.unavailable) out.add("ASSESSMENT_UNAVAILABLE");
     else if (c.checkId === "ai.manipulation") out.add("EVIDENCE_CONCERN");
     else out.add("LISTING_OR_FACTS");
   }
@@ -379,12 +379,12 @@ export async function remindGuardian(d: EngineDeps, tenantId: string, shopperId:
 // ---- guardian credential -----------------------------------------------------------------------
 
 /** Mint the hold's one live credential for this guardian (replacing any previous one). Caller locks the hold. */
-async function mintCredential(d: EngineDeps, tx: Tx, h: typeof holds.$inferSelect, guardianId: string, seq: number): Promise<{ token: string; expires_at: string }> {
+async function mintCredential(d: EngineDeps, tx: Tx, tenantId: string, h: typeof holds.$inferSelect, guardianId: string, seq: number): Promise<{ token: string; expires_at: string }> {
   const token = randomBytes(24).toString("base64url");
   const now = nowOf(d);
   const expires = new Date(Math.min(now.getTime() + (d.holdLinkMs ?? DEFAULT_CREDENTIAL_MS), h.autoVoidAt.getTime()));
   await tx.db.update(holds).set({ credentialHash: sha(token), credentialGuardianId: guardianId, credentialExpiresAt: expires, credentialSeq: seq, failedAttempts: 0 }).where(eq(holds.purchaseId, h.purchaseId));
-  await appendAudit(tx, { tenantId: null, purchaseId: h.purchaseId, eventType: "hold.credential_issued", payload: { guardian_id: guardianId, seq, expires_at: expires.toISOString() } });
+  await appendAudit(tx, { tenantId, purchaseId: h.purchaseId, eventType: "hold.credential_issued", payload: { guardian_id: guardianId, seq, expires_at: expires.toISOString() } });
   return { token, expires_at: expires.toISOString() };
 }
 
@@ -403,13 +403,13 @@ export function checkCredential(h: typeof holds.$inferSelect, g: GuardianRow | n
 }
 
 /** Count a wrong credential; at the limit, the live credential is cleared (a reminder sends a fresh one). */
-export async function recordFailedCredential(d: EngineDeps, purchaseId: string): Promise<void> {
+export async function recordFailedCredential(d: EngineDeps, tenantId: string, purchaseId: string): Promise<void> {
   await withTx(d.pool, async (tx) => {
     const h = (await tx.db.select().from(holds).where(eq(holds.purchaseId, purchaseId)).for("update").limit(1))[0];
     if (!h || h.approver !== "guardian") return;
     const n = h.failedAttempts + 1;
     await tx.db.update(holds).set(n >= MAX_FAILED_ATTEMPTS ? { ...clearCredential, failedAttempts: n } : { failedAttempts: n }).where(eq(holds.purchaseId, purchaseId));
-    if (n === MAX_FAILED_ATTEMPTS) await appendAudit(tx, { tenantId: null, purchaseId, eventType: "hold.credential_locked", payload: { failed_attempts: n } });
+    if (n === MAX_FAILED_ATTEMPTS) await appendAudit(tx, { tenantId, purchaseId, eventType: "hold.credential_locked", payload: { failed_attempts: n } });
   });
 }
 
@@ -499,7 +499,7 @@ export async function openInboxMessage(d: EngineDeps, tenantId: string, address:
     if (!p || !h) return bad(404, "Message not found");
     if (h.resolvedAt || p.state !== "HELD") return bad(409, "Already decided", `The payment is ${p.state}`);
     if (h.approver !== "guardian" || h.guardianId !== m.g.id) return bad(410, "You are no longer the trusted contact for this payment");
-    return ok({ purchase_id: p.id, ...(await mintCredential(d, tx, h, m.g.id, m.n.seq)) });
+    return ok({ purchase_id: p.id, ...(await mintCredential(d, tx, tenantId, h, m.g.id, m.n.seq)) });
   });
 }
 

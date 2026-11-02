@@ -2,7 +2,7 @@
 // output leads to human review, invented quotes are discarded, and policy can override a "low" verdict.
 import { describe, expect, test } from "vitest";
 import { FakeLlm, checkManipulation, enforceRequired, requiredAiChecks, screenPaymentAi, type AiFailureReason } from "@witness/ai";
-import { assess, decide, explainDecision, locate, type Conversation } from "../src/manipulation.ts";
+import { MANIPULATION_PROMPT, TACTICS, assess, decide, explainDecision, locate, severityOf, type Conversation } from "../src/manipulation.ts";
 
 const conv: Conversation = {
   context: "Rose is asked to send money.",
@@ -57,10 +57,33 @@ describe("detector fail-safes", () => {
     expect(locate(conv, "$1,800 for bail right now")).toBe(0);
   });
 
-  test("policy overrides a 'low' verdict that carries two severe grounded tactics", () => {
-    const g = (tactic: "safe_account" | "remote_access") => ({ tactic, quote: "q", speaker: "s", model_speaker: "s", why: "w", line_index: 0 });
-    expect(decide({ risk: "low", tactics: [], legitimate_explanation: "", confidence: 0.9, needs_independent_verification: false, recommended_action: "proceed" }, [g("safe_account"), g("remote_access")])).toBe("VERIFY_BEFORE_PAYING");
+  test("quoted evidence outranks the model's own label: one severe quoted tactic holds even when the model says 'low'", () => {
+    const g = (tactic: "safe_account" | "remote_access" | "payment_instruction_change" | "instruction_to_ai") => ({ tactic, quote: "q", speaker: "s", model_speaker: "s", why: "w", line_index: 0 });
+    const low = { risk: "low" as const, tactics: [], legitimate_explanation: "", confidence: 0.9, needs_independent_verification: false, recommended_action: "proceed" as const };
+    for (const t of ["safe_account", "remote_access", "payment_instruction_change", "instruction_to_ai"] as const) expect(explainDecision(low, [g(t)])).toMatchObject({ intervention: "HOLD_FOR_TRUSTED_CONTACT", rule: "E1 severe pattern quoted" });
     expect(decide(null, [])).toBe("HOLD_FOR_TRUSTED_CONTACT");
+  });
+
+  test("the model's label alone, with nothing verifiable, asks for a check and says it isn't a finding", () => {
+    const high = { risk: "high" as const, tactics: [], legitimate_explanation: "", confidence: 0.9, needs_independent_verification: true, recommended_action: "hold_and_verify" as const };
+    const e = explainDecision(high, []);
+    expect(e).toMatchObject({ intervention: "VERIFY_BEFORE_PAYING", rule: "E5 concern without evidence" });
+    expect(e.reason).toMatch(/not a finding/);
+  });
+
+  test("one moderate quoted pattern: held if the model is concerned, not if it reads the conversation as innocent", () => {
+    const g = { tactic: "urgency" as const, quote: "q", speaker: "s", model_speaker: "s", why: "w", line_index: 0 };
+    const out = (risk: "low" | "medium") => ({ risk, tactics: [], legitimate_explanation: "", confidence: 0.8, needs_independent_verification: false, recommended_action: "proceed" as const });
+    expect(explainDecision(out("medium"), [g]).intervention).toBe("HOLD_FOR_TRUSTED_CONTACT");
+    expect(explainDecision(out("low"), [g])).toMatchObject({ intervention: "PROCEED", rule: "E4 one pattern, innocent reading" });
+    // The same tactic quoted twice is still one pattern.
+    expect(explainDecision(out("low"), [g, { ...g, quote: "q2" }]).intervention).toBe("PROCEED");
+  });
+
+  test("every tactic has a fixed severity, and the prompt in use names every tactic", () => {
+    expect(TACTICS.filter((t) => severityOf(t) === "severe").sort()).toEqual(["instruction_to_ai", "payment_instruction_change", "remote_access", "safe_account", "threat", "unusual_payment_channel"]);
+    expect(`${MANIPULATION_PROMPT.id}@${MANIPULATION_PROMPT.version}`).toBe("manipulation@v2");
+    for (const t of TACTICS) expect(MANIPULATION_PROMPT.system).toContain(`- ${t}:`);
   });
 });
 
@@ -130,13 +153,22 @@ describe("explainDecision (the reason shown to people is the rule that ran)", ()
   test("every risk level and evidence combination maps to the same intervention as decide()", () => {
     const g = (tactic: string) => ({ tactic, quote: "q", speaker: "s", model_speaker: "s", why: "w", line_index: 0 }) as never;
     const out = (risk: string) => ({ risk, tactics: [], legitimate_explanation: "", confidence: 0.5, needs_independent_verification: false, recommended_action: "proceed" }) as never;
-    const cases: [unknown, unknown[]][] = [[null, []], [out("high"), []], [out("medium"), [g("urgency")]], [out("medium"), []], [out("insufficient_information"), []], [out("low"), [g("threat"), g("safe_account")]], [out("low"), [g("urgency")]]];
+    const cases: [unknown, unknown[]][] = [
+      [null, []],
+      [out("low"), [g("threat")]],
+      [out("low"), [g("urgency"), g("secrecy")]],
+      [out("medium"), [g("urgency")]],
+      [out("low"), [g("urgency")]],
+      [out("high"), []],
+      [out("insufficient_information"), []],
+      [out("low"), []],
+    ];
     const rules = new Set<string>();
     for (const [o, gr] of cases) {
       const e = explainDecision(o as never, gr as never);
       expect(e.intervention).toBe(decide(o as never, gr as never));
       rules.add(e.rule);
     }
-    expect(rules.size).toBe(7);
+    expect([...rules].map((r) => r.slice(0, 2)).sort()).toEqual(["E0", "E1", "E2", "E3", "E4", "E5", "E6", "E7"]);
   });
 });
