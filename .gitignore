@@ -15,4 +15,5 @@ evals/report/adv-v*-partial-latest.*
 
 # Next.js build output
 apps/web/.next/
+apps/web/.next-ui/
 secondkey/spikes/s4/.direct-payee-orders.json

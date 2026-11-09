@@ -8,12 +8,15 @@
   },
   "dependencies": {
     "@witness/ai": "workspace:*",
+    "@witness/ap2": "workspace:*",
     "@witness/catalog": "workspace:*",
     "@witness/core": "workspace:*",
     "@witness/db": "workspace:*",
     "@witness/paypal": "workspace:*",
     "drizzle-orm": "0.45.3",
+    "jose": "6.2.12",
     "pg": "8.23.0",
-    "pg-boss": "12.35.0"
+    "pg-boss": "12.35.0",
+    "zod": "4.6.5"
   }
 }

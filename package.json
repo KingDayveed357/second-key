@@ -39,6 +39,7 @@
     "@types/pg": "8.23.1",
     "@witness/ai": "workspace:*",
     "@witness/api": "workspace:*",
+    "@witness/ap2": "workspace:*",
     "@witness/catalog": "workspace:*",
     "@witness/config": "workspace:*",
     "@witness/core": "workspace:*",

@@ -2,10 +2,11 @@
 
 import { and, eq, inArray, lt } from "drizzle-orm";
 import { OPEN_AUTHORIZATION_STATES } from "@witness/core";
-import { QUEUES, dbOf, enqueue, schema, withTx, type NotifyJob, type PurchaseJob, type QueueName, type WebhookJob } from "@witness/db";
+import { QUEUES, dbOf, enqueue, schema, withTx, type NotifyJob, type PurchaseJob, type QueueName, type SettlementJob, type WebhookJob } from "@witness/db";
 import { applyAllDueChanges, deliverNotification, logOf, nowOf, sweepNotifications } from "@witness/engine";
 import { executeCapture, executeVoid, holdTimeout, reconcile, type ExecutorDeps } from "./executor.ts";
 import { checkPayout, executePayout, sweepPayouts, type PayoutJob } from "./payout.ts";
+import { executeAp2Capture, executeAp2Void, reconcileAp2 } from "./settlement.ts";
 
 const { purchases, webhookEvents } = schema;
 
@@ -74,6 +75,15 @@ export async function handleJob(d: ExecutorDeps, queue: QueueName, data: unknown
       break;
     case QUEUES.notify:
       result = await deliverNotification(d, (data as NotifyJob).notificationId);
+      break;
+    case QUEUES.ap2Capture:
+      result = await executeAp2Capture(d, data as SettlementJob);
+      break;
+    case QUEUES.ap2Void:
+      result = await executeAp2Void(d, data as SettlementJob);
+      break;
+    case QUEUES.ap2Reconcile:
+      result = await reconcileAp2(d, data as SettlementJob);
       break;
     case QUEUES.sweep:
       result = `swept ${await sweep(d)}; payouts ${await sweepPayouts(d)}; notifications ${await sweepNotifications(d)}; profile changes ${await applyAllDueChanges(d)}`;

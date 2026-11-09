@@ -1,0 +1,13 @@
+{
+  "name": "@witness/ap2",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "jose": "6.2.12"
+  }
+}

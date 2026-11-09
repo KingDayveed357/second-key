@@ -1,5 +1,6 @@
 import Link from "next/link";
 import "./sk.css";
+import "./sk-shell.css";
 import { Mark } from "./_ui/mark";
 import { Demo, Live, Nav } from "./_ui/ui";
 
@@ -8,6 +9,9 @@ import { Demo, Live, Nav } from "./_ui/ui";
 export default function SecondKeyLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="sk">
+      <a className="sk-skip" href="#main">
+        Skip to content
+      </a>
       <header className="sk-top">
         <div className="inner">
           <Link href="/" className="sk-brand">
@@ -17,7 +21,7 @@ export default function SecondKeyLayout({ children }: { children: React.ReactNod
           <Nav />
         </div>
       </header>
-      <main className="sk-main" id="main">
+      <main className="sk-main" id="main" tabIndex={-1}>
         {children}
       </main>
       <footer className="sk-foot">

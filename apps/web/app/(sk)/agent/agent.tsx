@@ -134,7 +134,7 @@ export function Agent() {
       <div className="sk-stage">
         <div className="stack">
           <div className="row between">
-            <div className="sk-seg" role="group" aria-label="What happens on this run">
+            <div className="sk-seg wrap" role="group" aria-label="What happens on this run">
               {RUNS.map((r) => (
                 <button key={r.name} aria-pressed={run === r.name} disabled={busy} onClick={() => (setRun(r.name), setPurchase(null), setEv(null), setPp(null), setLink(null))}>
                   {r.label}

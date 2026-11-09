@@ -25,6 +25,8 @@ export const RULES: Rule[] = [
   { name: "money-movement-only-in-executor", from: /^/, fromNot: /^packages\/(executor|paypal)\//, to: /^@witness\/paypal\/money-movement$|money-movement(\.ts)?$/ },
   { name: "executor-only-in-worker", from: /^/, fromNot: /^(apps\/worker|packages\/executor)\//, to: /^@witness\/executor(\/|$)/ },
   { name: "core-is-pure", from: /^packages\/core\//, to: /^@witness\/|^(pg|pg-boss|fastify|drizzle-orm)(\/|$)|^node:(net|http|https|dgram|child_process|fs)$/ },
+  // The AP2 verifier decides on bytes alone: no database, network, files or other Witness code.
+  { name: "ap2-is-pure", from: /^packages\/ap2\//, to: /^@witness\/|^(pg|pg-boss|fastify|drizzle-orm)(\/|$)|^node:(net|http|https|dgram|child_process|fs)$/ },
   { name: "web-never-touches-paypal-or-db", from: /^apps\/web\//, to: /^@witness\/(paypal|db|executor)(\/|$)|^pg(\/|$)/ },
   { name: "ai-has-no-money-access", from: /^packages\/ai\//, to: /^@witness\/(paypal|db|executor|engine)(\/|$)|^(pg|pg-boss)(\/|$)/ },
   { name: "agent-is-an-outsider", from: /^apps\/agent\//, to: /^@witness\/|^(pg|pg-boss)(\/|$)/ },

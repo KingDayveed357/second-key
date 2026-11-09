@@ -12,6 +12,8 @@
     "@witness/config": "workspace:*",
     "@witness/core": "workspace:*",
     "@witness/db": "workspace:*",
+    "@witness/ap2": "workspace:*",
+    "jose": "6.2.12",
     "@witness/engine": "workspace:*",
     "@witness/paypal": "workspace:*",
     "drizzle-orm": "0.45.3",

@@ -4,6 +4,7 @@ import { standardAdapter, swapAdapter, type CheckoutAdapter } from "@witness/cor
 import type { CatalogSource } from "@witness/catalog";
 import type { PayPalClient } from "@witness/paypal";
 import type { LlmClient } from "@witness/ai";
+import type { ReceiptSigner } from "@witness/ap2";
 import type { Notifier } from "./protection.ts";
 
 export interface Logger {
@@ -44,6 +45,8 @@ export interface EngineDeps {
   notifier?: Notifier;
   /** Delay before a loosening profile change applies (default 48 h; never below 24 h). */
   loosenDelayMs?: number;
+  /** Signs AP2 verification receipts. Absent: /v2/verifications answers 503. */
+  receipts?: ReceiptSigner;
 }
 
 export interface Principal {

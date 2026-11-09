@@ -6,6 +6,7 @@ import { ApiConfig, loadDotEnv, parseConfig } from "@witness/config";
 import { createBoss, createPool, ensureQueues, migrate } from "@witness/db";
 import { PayPalClient } from "@witness/paypal";
 import { AnthropicProvider, UnavailableProvider, UsageMeter, approvedModel } from "@witness/ai";
+import { loadReceiptSigner } from "@witness/ap2";
 import { buildApp } from "./app.ts";
 
 loadDotEnv();
@@ -16,6 +17,7 @@ const aiMeter = new UsageMeter({ maxCalls: cfg.WITNESS_AI_MAX_CALLS, maxSpendUsd
 // The public "try to beat it" screen has its own, smaller budget: judge traffic can never exhaust the
 // budget that screens real purchases (when it runs out, only judge screens hold).
 const demoMeter = new UsageMeter({ maxCalls: Math.ceil(cfg.WITNESS_AI_MAX_CALLS / 4), maxSpendUsd: cfg.WITNESS_DEMO_AI_MAX_SPEND_USD });
+const receipts = await loadReceiptSigner(cfg.SECONDKEY_VERIFIER_ISSUER, cfg.SECONDKEY_RECEIPT_JWK);
 const pool = createPool(cfg.DATABASE_URL);
 await migrate(pool);
 const boss = createBoss(cfg.DATABASE_URL, "api");
@@ -34,6 +36,7 @@ const app = buildApp({
       : new UnavailableProvider(),
     defaultRetailers: cfg.WITNESS_DEFAULT_RETAILERS.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
     holdLinkMs: cfg.WITNESS_HOLD_LINK_TTL_MINUTES * 60_000,
+    receipts,
     ...(cfg.SECONDKEY_DEMO_RECIPIENT_EMAIL ? { demoRecipientEmail: cfg.SECONDKEY_DEMO_RECIPIENT_EMAIL } : {}),
   },
   webhookId: cfg.PAYPAL_WEBHOOK_ID,
@@ -56,4 +59,5 @@ process.on("SIGINT", close);
 process.on("SIGTERM", close);
 
 await app.listen({ port: cfg.PORT, host: cfg.HOST });
+if (receipts.ephemeral) app.log.warn("SECONDKEY_RECEIPT_JWK is not set: AP2 receipts are signed with a per-process key and stop verifying after a restart");
 if (!cfg.ANTHROPIC_API_KEY) app.log.warn("ANTHROPIC_API_KEY is not set: AI checks fail closed and every purchase will HOLD");

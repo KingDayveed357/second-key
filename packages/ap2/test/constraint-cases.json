@@ -1,0 +1,930 @@
+{
+  "now": 1793880000,
+  "note": "Shared with interop/sdk_vectors.py constraints; 'ours' is @witness/ap2's verdict, 'divergence' explains where the reference SDK differs.",
+  "cases": [
+    {
+      "name": "line_items: spec example, shoe and socks",
+      "kind": "checkout",
+      "open": {
+        "vct": "mandate.checkout.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "checkout.line_items",
+            "items": [
+              {
+                "id": "r0",
+                "acceptable_items": [
+                  {
+                    "id": "BAB1234",
+                    "title": "BAB1234"
+                  },
+                  {
+                    "id": "FAF1234",
+                    "title": "FAF1234"
+                  }
+                ],
+                "quantity": 1
+              },
+              {
+                "id": "r1",
+                "acceptable_items": [
+                  {
+                    "id": "QRT1234",
+                    "title": "QRT1234"
+                  }
+                ],
+                "quantity": 1
+              }
+            ]
+          }
+        ]
+      },
+      "checkout": {
+        "id": "chk",
+        "merchant": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "line_items": [
+          {
+            "id": "li_0",
+            "item": {
+              "id": "BAB1234",
+              "title": "BAB1234",
+              "price": 1000
+            },
+            "quantity": 1,
+            "totals": [
+              {
+                "type": "total",
+                "amount": 1000
+              }
+            ]
+          },
+          {
+            "id": "li_1",
+            "item": {
+              "id": "QRT1234",
+              "title": "QRT1234",
+              "price": 1000
+            },
+            "quantity": 1,
+            "totals": [
+              {
+                "type": "total",
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "status": "ready_for_complete",
+        "currency": "USD",
+        "totals": [
+          {
+            "type": "subtotal",
+            "amount": 0
+          },
+          {
+            "type": "total",
+            "amount": 0
+          }
+        ],
+        "links": []
+      },
+      "ours": "pass"
+    },
+    {
+      "name": "line_items: spec example, two shoes",
+      "kind": "checkout",
+      "open": {
+        "vct": "mandate.checkout.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "checkout.line_items",
+            "items": [
+              {
+                "id": "r0",
+                "acceptable_items": [
+                  {
+                    "id": "BAB1234",
+                    "title": "BAB1234"
+                  },
+                  {
+                    "id": "FAF1234",
+                    "title": "FAF1234"
+                  }
+                ],
+                "quantity": 1
+              },
+              {
+                "id": "r1",
+                "acceptable_items": [
+                  {
+                    "id": "QRT1234",
+                    "title": "QRT1234"
+                  }
+                ],
+                "quantity": 1
+              }
+            ]
+          }
+        ]
+      },
+      "checkout": {
+        "id": "chk",
+        "merchant": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "line_items": [
+          {
+            "id": "li_0",
+            "item": {
+              "id": "BAB1234",
+              "title": "BAB1234",
+              "price": 1000
+            },
+            "quantity": 1,
+            "totals": [
+              {
+                "type": "total",
+                "amount": 1000
+              }
+            ]
+          },
+          {
+            "id": "li_1",
+            "item": {
+              "id": "FAF1234",
+              "title": "FAF1234",
+              "price": 1000
+            },
+            "quantity": 1,
+            "totals": [
+              {
+                "type": "total",
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "status": "ready_for_complete",
+        "currency": "USD",
+        "totals": [
+          {
+            "type": "subtotal",
+            "amount": 0
+          },
+          {
+            "type": "total",
+            "amount": 0
+          }
+        ],
+        "links": []
+      },
+      "ours": "fail"
+    },
+    {
+      "name": "line_items: spec example, shoe only",
+      "kind": "checkout",
+      "open": {
+        "vct": "mandate.checkout.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "checkout.line_items",
+            "items": [
+              {
+                "id": "r0",
+                "acceptable_items": [
+                  {
+                    "id": "BAB1234",
+                    "title": "BAB1234"
+                  },
+                  {
+                    "id": "FAF1234",
+                    "title": "FAF1234"
+                  }
+                ],
+                "quantity": 1
+              },
+              {
+                "id": "r1",
+                "acceptable_items": [
+                  {
+                    "id": "QRT1234",
+                    "title": "QRT1234"
+                  }
+                ],
+                "quantity": 1
+              }
+            ]
+          }
+        ]
+      },
+      "checkout": {
+        "id": "chk",
+        "merchant": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "line_items": [
+          {
+            "id": "li_0",
+            "item": {
+              "id": "BAB1234",
+              "title": "BAB1234",
+              "price": 1000
+            },
+            "quantity": 1,
+            "totals": [
+              {
+                "type": "total",
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "status": "ready_for_complete",
+        "currency": "USD",
+        "totals": [
+          {
+            "type": "subtotal",
+            "amount": 0
+          },
+          {
+            "type": "total",
+            "amount": 0
+          }
+        ],
+        "links": []
+      },
+      "ours": "fail",
+      "divergence": "The spec lists 'Item: Red Style' alone as invalid (max flow must equal the total required); the SDK only checks that the cart fits."
+    },
+    {
+      "name": "line_items: acceptable_items withheld",
+      "kind": "checkout",
+      "open": {
+        "vct": "mandate.checkout.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "checkout.line_items",
+            "items": [
+              {
+                "id": "r0",
+                "acceptable_items": [],
+                "quantity": 1
+              }
+            ]
+          }
+        ]
+      },
+      "checkout": {
+        "id": "chk",
+        "merchant": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "line_items": [
+          {
+            "id": "li_0",
+            "item": {
+              "id": "ANY-SKU",
+              "title": "ANY-SKU",
+              "price": 1000
+            },
+            "quantity": 1,
+            "totals": [
+              {
+                "type": "total",
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "status": "ready_for_complete",
+        "currency": "USD",
+        "totals": [
+          {
+            "type": "subtotal",
+            "amount": 0
+          },
+          {
+            "type": "total",
+            "amount": 0
+          }
+        ],
+        "links": []
+      },
+      "ours": "fail",
+      "divergence": "The spec matches only revealed acceptable_items; the SDK treats an empty list as a wildcard, so a holder who withholds them can buy anything."
+    },
+    {
+      "name": "line_items: too many units",
+      "kind": "checkout",
+      "open": {
+        "vct": "mandate.checkout.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "checkout.line_items",
+            "items": [
+              {
+                "id": "r0",
+                "acceptable_items": [
+                  {
+                    "id": "A",
+                    "title": "A"
+                  }
+                ],
+                "quantity": 1
+              }
+            ]
+          }
+        ]
+      },
+      "checkout": {
+        "id": "chk",
+        "merchant": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "line_items": [
+          {
+            "id": "li_0",
+            "item": {
+              "id": "A",
+              "title": "A",
+              "price": 1000
+            },
+            "quantity": 2,
+            "totals": [
+              {
+                "type": "total",
+                "amount": 2000
+              }
+            ]
+          }
+        ],
+        "status": "ready_for_complete",
+        "currency": "USD",
+        "totals": [
+          {
+            "type": "subtotal",
+            "amount": 0
+          },
+          {
+            "type": "total",
+            "amount": 0
+          }
+        ],
+        "links": []
+      },
+      "ours": "fail"
+    },
+    {
+      "name": "allowed_merchants: other merchant",
+      "kind": "checkout",
+      "open": {
+        "vct": "mandate.checkout.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "checkout.allowed_merchants",
+            "allowed": [
+              {
+                "id": "m1",
+                "name": "Shop",
+                "website": "https://shop.example"
+              }
+            ]
+          }
+        ]
+      },
+      "checkout": {
+        "id": "chk",
+        "merchant": {
+          "id": "m2",
+          "name": "Other",
+          "website": "https://other.example"
+        },
+        "line_items": [
+          {
+            "id": "li_0",
+            "item": {
+              "id": "A",
+              "title": "A",
+              "price": 1000
+            },
+            "quantity": 1,
+            "totals": [
+              {
+                "type": "total",
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "status": "ready_for_complete",
+        "currency": "USD",
+        "totals": [
+          {
+            "type": "subtotal",
+            "amount": 0
+          },
+          {
+            "type": "total",
+            "amount": 0
+          }
+        ],
+        "links": []
+      },
+      "ours": "fail"
+    },
+    {
+      "name": "amount_range: over max",
+      "kind": "payment",
+      "open": {
+        "vct": "mandate.payment.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "payment.amount_range",
+            "currency": "USD",
+            "max": 20000
+          }
+        ]
+      },
+      "closed": {
+        "vct": "mandate.payment.1",
+        "transaction_id": "tx",
+        "payee": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "payment_amount": {
+          "amount": 20001,
+          "currency": "USD"
+        },
+        "payment_instrument": {
+          "id": "pi_1",
+          "type": "paypal"
+        }
+      },
+      "usage": {
+        "uses": 0,
+        "totalMinor": 0
+      },
+      "ours": "fail"
+    },
+    {
+      "name": "allowed_payees: other payee",
+      "kind": "payment",
+      "open": {
+        "vct": "mandate.payment.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "payment.allowed_payees",
+            "allowed": [
+              {
+                "id": "m2",
+                "name": "Other"
+              }
+            ]
+          }
+        ]
+      },
+      "closed": {
+        "vct": "mandate.payment.1",
+        "transaction_id": "tx",
+        "payee": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "payment_amount": {
+          "amount": 19900,
+          "currency": "USD"
+        },
+        "payment_instrument": {
+          "id": "pi_1",
+          "type": "paypal"
+        }
+      },
+      "usage": {
+        "uses": 0,
+        "totalMinor": 0
+      },
+      "ours": "fail"
+    },
+    {
+      "name": "reference: other open checkout",
+      "kind": "payment",
+      "open": {
+        "vct": "mandate.payment.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "payment.reference",
+            "conditional_transaction_id": "ref-a"
+          }
+        ]
+      },
+      "closed": {
+        "vct": "mandate.payment.1",
+        "transaction_id": "tx",
+        "payee": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "payment_amount": {
+          "amount": 19900,
+          "currency": "USD"
+        },
+        "payment_instrument": {
+          "id": "pi_1",
+          "type": "paypal"
+        }
+      },
+      "open_checkout_hash": "ref-b",
+      "usage": {
+        "uses": 0,
+        "totalMinor": 0
+      },
+      "ours": "fail"
+    },
+    {
+      "name": "budget: exactly at the limit",
+      "kind": "payment",
+      "open": {
+        "vct": "mandate.payment.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "payment.budget",
+            "max": 500,
+            "currency": "USD"
+          }
+        ]
+      },
+      "closed": {
+        "vct": "mandate.payment.1",
+        "transaction_id": "tx",
+        "payee": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "payment_amount": {
+          "amount": 19900,
+          "currency": "USD"
+        },
+        "payment_instrument": {
+          "id": "pi_1",
+          "type": "paypal"
+        }
+      },
+      "usage": {
+        "uses": 1,
+        "totalMinor": 30100
+      },
+      "ours": "pass"
+    },
+    {
+      "name": "budget: one cent over",
+      "kind": "payment",
+      "open": {
+        "vct": "mandate.payment.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "payment.budget",
+            "max": 500,
+            "currency": "USD"
+          }
+        ]
+      },
+      "closed": {
+        "vct": "mandate.payment.1",
+        "transaction_id": "tx",
+        "payee": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "payment_amount": {
+          "amount": 19900,
+          "currency": "USD"
+        },
+        "payment_instrument": {
+          "id": "pi_1",
+          "type": "paypal"
+        }
+      },
+      "usage": {
+        "uses": 1,
+        "totalMinor": 30101
+      },
+      "ours": "fail"
+    },
+    {
+      "name": "budget: 0.29 allows 29 cents",
+      "kind": "payment",
+      "open": {
+        "vct": "mandate.payment.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "payment.budget",
+            "max": 0.29,
+            "currency": "USD"
+          }
+        ]
+      },
+      "closed": {
+        "vct": "mandate.payment.1",
+        "transaction_id": "tx",
+        "payee": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "payment_amount": {
+          "amount": 29,
+          "currency": "USD"
+        },
+        "payment_instrument": {
+          "id": "pi_1",
+          "type": "paypal"
+        }
+      },
+      "usage": {
+        "uses": 0,
+        "totalMinor": 0
+      },
+      "ours": "pass",
+      "divergence": "The SDK computes int(0.29 * 100) = 28 (binary floating point), so a 29-cent budget refuses 29 cents; we round."
+    },
+    {
+      "name": "recurrence: max_occurrences reached",
+      "kind": "payment",
+      "open": {
+        "vct": "mandate.payment.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "payment.agent_recurrence",
+            "frequency": "ON_DEMAND",
+            "max_occurrences": 3
+          },
+          {
+            "type": "payment.amount_range",
+            "currency": "USD",
+            "max": 20000
+          },
+          {
+            "type": "payment.budget",
+            "max": 1000,
+            "currency": "USD"
+          }
+        ]
+      },
+      "closed": {
+        "vct": "mandate.payment.1",
+        "transaction_id": "tx",
+        "payee": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "payment_amount": {
+          "amount": 19900,
+          "currency": "USD"
+        },
+        "payment_instrument": {
+          "id": "pi_1",
+          "type": "paypal"
+        }
+      },
+      "usage": {
+        "uses": 3,
+        "totalMinor": 0
+      },
+      "ours": "fail"
+    },
+    {
+      "name": "recurrence: second use in one MONTHLY period",
+      "kind": "payment",
+      "open": {
+        "vct": "mandate.payment.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "payment.agent_recurrence",
+            "frequency": "MONTHLY",
+            "max_occurrences": 12
+          },
+          {
+            "type": "payment.amount_range",
+            "currency": "USD",
+            "max": 20000
+          },
+          {
+            "type": "payment.budget",
+            "max": 1000,
+            "currency": "USD"
+          }
+        ]
+      },
+      "closed": {
+        "vct": "mandate.payment.1",
+        "transaction_id": "tx",
+        "payee": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "payment_amount": {
+          "amount": 19900,
+          "currency": "USD"
+        },
+        "payment_instrument": {
+          "id": "pi_1",
+          "type": "paypal"
+        }
+      },
+      "usage": {
+        "uses": 1,
+        "totalMinor": 19900,
+        "lastUsedAt": 1793523600
+      },
+      "ours": "fail",
+      "divergence": "The spec requires presentations to be separated by the frequency; the SDK's evaluator ignores frequency."
+    },
+    {
+      "name": "recurrence: next MONTHLY period",
+      "kind": "payment",
+      "open": {
+        "vct": "mandate.payment.open.1",
+        "cnf": {
+          "jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+          }
+        },
+        "constraints": [
+          {
+            "type": "payment.agent_recurrence",
+            "frequency": "MONTHLY",
+            "max_occurrences": 12
+          },
+          {
+            "type": "payment.amount_range",
+            "currency": "USD",
+            "max": 20000
+          },
+          {
+            "type": "payment.budget",
+            "max": 1000,
+            "currency": "USD"
+          }
+        ]
+      },
+      "closed": {
+        "vct": "mandate.payment.1",
+        "transaction_id": "tx",
+        "payee": {
+          "id": "m1",
+          "name": "Shop",
+          "website": "https://shop.example"
+        },
+        "payment_amount": {
+          "amount": 19900,
+          "currency": "USD"
+        },
+        "payment_instrument": {
+          "id": "pi_1",
+          "type": "paypal"
+        }
+      },
+      "usage": {
+        "uses": 1,
+        "totalMinor": 19900,
+        "lastUsedAt": 1792454400
+      },
+      "ours": "pass"
+    }
+  ]
+}

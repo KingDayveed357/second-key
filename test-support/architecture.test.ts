@@ -44,6 +44,11 @@ describe("architecture rules", () => {
     expect(probe("packages/core/src/bad6.ts", `import { withTx } from "@witness/db";`)).toHaveLength(1);
   });
 
+  test("the AP2 verifier importing the database, network or other Witness code fails", () => {
+    expect(probe("packages/ap2/src/bad12.ts", `import { withTx } from "@witness/db";`).map((v) => v.rule)).toEqual(["ap2-is-pure"]);
+    expect(probe("packages/ap2/src/bad13.ts", `import { request } from "node:https";`)).toHaveLength(1);
+  });
+
   test("the web app importing PayPal or the DB fails", () => {
     expect(probe("apps/web/src/bad7.ts", `import { PayPalClient } from "@witness/paypal";`)).toHaveLength(1);
   });

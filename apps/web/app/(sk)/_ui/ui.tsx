@@ -2,23 +2,79 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { stageOf, type Tone } from "../../../lib/sk";
 
+/** The routes in the order the demo tells its story: the agent problem, people, operations, adoption. */
+const ROUTES = [
+  { href: "/agent", label: "Agent demo", hint: "An agent is manipulated; the money isn't" },
+  { href: "/pay", label: "Payer demo", hint: "A person under pressure; a trusted second key" },
+  { href: "/desk", label: "Protection Desk", hint: "Every incident and its evidence, on AG Grid" },
+  { href: "/developers", label: "Developers", hint: "Integrate it; run the sandbox conformance suite" },
+  { href: "/try", label: "Try the analysis", hint: "Test the AI on your own text" },
+] as const;
+
+/**
+ * Inline links on wide screens; a disclosure menu below 860px so no link is clipped or hidden.
+ * The menu closes on navigation, Escape and outside clicks, and returns focus to its button.
+ */
 export function Nav() {
   const path = usePathname();
-  const item = (href: string, label: string, cls = "") => (
-    <Link href={href} className={cls} aria-current={path === href || (href !== "/" && path.startsWith(href)) ? "page" : undefined}>
-      {label}
-    </Link>
-  );
+  const [open, setOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const current = (href: string) => (path === href || (href !== "/" && path.startsWith(href)) ? "page" : undefined);
+
+  useEffect(() => setOpen(false), [path]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        button.current?.focus();
+      }
+    };
+    const onClick = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!panel.current?.contains(t) && !button.current?.contains(t)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClick);
+    panel.current?.querySelector<HTMLElement>("a")?.focus();
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClick);
+    };
+  }, [open]);
+
   return (
-    <nav className="sk-nav" aria-label="Second Key">
-      {item("/pay", "Payer demo")}
-      {item("/agent", "Agent demo")}
-      {item("/desk", "Protection Desk")}
-      {item("/developers", "Developers")}
-    </nav>
+    <>
+      <nav className="sk-nav" aria-label="Second Key">
+        {ROUTES.slice(0, 4).map((r) => (
+          <Link key={r.href} href={r.href} aria-current={current(r.href)}>
+            {r.label}
+          </Link>
+        ))}
+      </nav>
+      <button ref={button} type="button" className="sk-menu-btn" aria-expanded={open} aria-controls="sk-menu" onClick={() => setOpen((o) => !o)}>
+        <span className="bars" aria-hidden />
+        {open ? "Close" : "Menu"}
+      </button>
+      <div ref={panel} id="sk-menu" className="sk-menu" hidden={!open}>
+        <nav aria-label="Second Key, menu">
+          <ul>
+            {ROUTES.map((r) => (
+              <li key={r.href}>
+                <Link href={r.href} aria-current={current(r.href)}>
+                  <span className="label">{r.label}</span>
+                  <span className="hint">{r.hint}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </>
   );
 }
 

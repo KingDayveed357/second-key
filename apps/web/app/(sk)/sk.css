@@ -225,6 +225,17 @@
 .sk-seg { display: inline-flex; padding: 3px; gap: 3px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--line); }
 .sk-seg button { min-height: 38px; padding: 0 var(--s4); border: 0; border-radius: 10px; background: transparent; font: inherit; font-size: var(--text-sm); color: var(--ink-2); cursor: pointer; }
 .sk-seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+.sk-seg.wrap { display: flex; flex-wrap: wrap; }
+.sk-seg.wrap button { flex: 1 1 auto; }
+
+/* ---------- trust ladder (AP2 agent demo) ---------- */
+.sk-ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+.sk-ladder li { display: flex; flex-direction: column; gap: 2px; padding: var(--s3) var(--s4); border-radius: var(--r-md); border: 1px solid var(--line); border-left: 3px solid var(--line); background: var(--surface); }
+.sk-ladder li.pass { border-left-color: var(--moss); }
+.sk-ladder li.fail { border-left-color: var(--brick); background: color-mix(in srgb, var(--brick-soft) 45%, var(--surface)); }
+.sk-ladder li.open { border-left-color: var(--brass); }
+.sk-ladder li.wait { border-left-color: var(--ink-3); }
+.sk-ladder li.skip { opacity: 0.6; }
 
 /* ---------- confirm sheet ---------- */
 .sk-sheet { border: 1px solid var(--line-strong); border-radius: var(--r-lg); background: var(--surface); padding: var(--s5); animation: sk-rise 220ms var(--ease); }

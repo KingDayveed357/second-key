@@ -41,6 +41,9 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      # AP2 receipt signing key (private P-256 JWK as JSON). Without it receipts stop verifying after a restart.
+      - key: SECONDKEY_RECEIPT_JWK
+        sync: false
 
   - type: worker
     name: witness-worker
@@ -91,6 +94,9 @@ services:
         sync: false
       # Studio agent (Haiku) proxy; capped separately in the web app.
       - key: ANTHROPIC_API_KEY
+        sync: false
+      # AP2 receipt signing key (private P-256 JWK as JSON). Without it receipts stop verifying after a restart.
+      - key: SECONDKEY_RECEIPT_JWK
         sync: false
       - key: WITNESS_STUDIO_AI_MAX_SPEND_USD
         value: "0.50"
