@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type Problem } from "../../../../lib/client";
 import { clock, rankEvidence, stageOf, when } from "../../../../lib/sk";
 import { QuoteCard, Transcript, type Conversation, type Evidence } from "../../_ui/evidence";
-import { Button, Demo, Live, Notice, Rail, StatePill } from "../../_ui/ui";
+import { Button, Demo, Notice, Rail, StatePill } from "../../_ui/ui";
 import { PayPalCheck } from "../../_ui/verify";
 
 interface HoldView {
@@ -360,7 +360,7 @@ export function Review({ id }: { id: string }) {
       )}
 
       <div className="row between">
-        <Live>Statuses read live</Live>
+        <span className="xs muted">Statuses are read from Second Key and PayPal</span>
         <span className="xs muted mono">{hold.purchase_id}</span>
       </div>
     </div>

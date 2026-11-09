@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, errText, money, settle } from "../../../lib/client";
 import { StatePill } from "../_ui/ui";
-import { Button, Live } from "../_ui/ui";
+import { Button } from "../_ui/ui";
 
 interface Scenario {
   name: string;
@@ -144,7 +144,7 @@ export function Conformance() {
                         </div>
                         {r?.paypal && (
                           <span className="xs mono">
-                            <Live>PayPal</Live> order {r.paypal.order?.status ?? "none"} · auth {r.paypal.authorizations?.map((a) => a.status).join(", ") || "none"} · captures {r.paypal.captures?.map((c) => c.status).join(", ") || "none"}
+                            PayPal: order {r.paypal.order?.status ?? "none"} · auth {r.paypal.authorizations?.map((a) => a.status).join(", ") || "none"} · captures {r.paypal.captures?.map((c) => c.status).join(", ") || "none"}
                             {r.paypal.debug_id ? ` · debug ${r.paypal.debug_id}` : ""}
                           </span>
                         )}

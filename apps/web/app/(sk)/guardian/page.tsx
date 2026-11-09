@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <div className="stack-lg">
       <header className="stack-sm" style={{ maxWidth: 440, margin: "0 auto", width: "100%" }}>
-        <span className="sk-section-title">Experience B · the trusted contact</span>
+        <span className="sk-section-title">The trusted contact</span>
       </header>
       <GuardianPhone />
     </div>

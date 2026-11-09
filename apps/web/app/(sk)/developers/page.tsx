@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Demo, Live } from "../_ui/ui";
 import { ConstraintTemplates, TestVerification } from "../_ap2/kit";
 import { Conformance, Counters } from "./conformance";
 
@@ -14,14 +13,10 @@ export default function Page() {
     <div className="stack-lg" style={{ gap: "var(--s8)" }}>
       <section className="stack" style={{ maxWidth: 760 }}>
         <span className="sk-section-title">For developers</span>
-        <h1 style={{ fontSize: "var(--text-2xl)" }}>Second Key sits between the decision to pay and the money moving.</h1>
+        <h1 style={{ fontSize: "var(--text-2xl)" }}>Put a second key between your payment decision and PayPal.</h1>
         <p className="sk-lede">
-          Your wallet, marketplace or agent platform sends Second Key the payment it is about to make. Second Key checks it against what the payer confirmed and the rule they set in advance, asks PayPal to reserve the money, and only lets it complete with a clean check or the payer&apos;s trusted contact&apos;s approval. Every outcome is read back from PayPal.
+          Your wallet, marketplace or agent platform sends Second Key the payment it is about to make. Second Key checks it against what the person authorized, has PayPal reserve the money, and completes it only when the checks pass or the right person approves.
         </p>
-        <div className="row" style={{ gap: "var(--s4)" }}>
-          <Live>Real engine and PayPal sandbox</Live>
-          <Demo>Synthetic payers and listings</Demo>
-        </div>
       </section>
 
       <section className="stack" aria-labelledby="flow">

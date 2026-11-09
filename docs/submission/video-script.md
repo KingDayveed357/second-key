@@ -1,5 +1,7 @@
 # Demo video: script and shot list (target 2:50, limit 3:00)
 
+> **Two scripts exist; record one.** This one leads with AP2 (agentic-commerce depth). `demo-direction.md` follows the human attack → agent attack → decision boundary story. Choose before recording. Since 2026-11-09 the AP2 demo is the second section of `/agent`: open `/agent#ap2` for shots 2–6.
+
 Recorded on the deployed app (https://witness-web.onrender.com) against the real PayPal sandbox. Trim waiting time, never results. Narration is about 255 words, which leaves room for the screen to speak. No music, or music you have a licence for; show no third-party logos except the partners' own product UI.
 
 **Before recording**
@@ -10,7 +12,7 @@ Recorded on the deployed app (https://witness-web.onrender.com) against the real
 
 | # | Time | Screen and action | Narration |
 |---|---|---|---|
-| 1 | 0:00–0:15 | `/` home. Hold on the hero, then scroll slowly to the facts ledger. | "AI agents can now pay. Google's AP2 proves an agent was *allowed* to. It doesn't prove the agent bought what you meant, or that PayPal is about to charge for exactly that. Second Key does." |
+| 1 | 0:00–0:15 | `/` home. Hold on the hero, then scroll slowly to the two scenario cards (the $1,800 transfer and the $84 poisoned-page purchase). | "AI agents can now pay. Google's AP2 proves an agent was *allowed* to. It doesn't prove the agent bought what you meant, or that PayPal is about to charge for exactly that. Second Key does." |
 | 2 | 0:15–0:35 | `/agent`. Point at "What Rose signs" and the device key line. Click **Sign the mandate and let the agent buy** on *It goes right*. Show the ladder going green and PayPal capturing. | "Rose's own browser signs her AP2 mandate: a Ridgeline trail runner, size ten, not white, up to ninety dollars. The agent buys, every check passes, and PayPal captures." |
 | 3 | 0:35–0:55 | Choose **Agent steered** and run it. Pause on the red *AP2 constraints* rung and "PayPal's order: not reached". | "A page tells the agent a four-hundred-and-eighty-dollar shoe was pre-approved. AP2's own constraints refuse it, and PayPal is never asked for anything." |
 | 4 | 0:55–1:20 | Choose **Wrong colour** and run it. Zoom on *AP2 constraints: Passed* next to *Second Key's facts: Stopped it*, with the detail "color: 'Cloud White' is excluded". | "Here the agent picks the white shoe, which is on Rose's list. Every AP2 check passes. But Second Key fetched the product's facts itself, signed them, and they say Cloud White. Refused." |

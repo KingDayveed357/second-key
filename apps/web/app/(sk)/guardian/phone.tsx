@@ -117,7 +117,7 @@ export function GuardianPhone() {
         <Demo>Demo channel</Demo>
       </div>
       <p className="xs muted">
-        This window stands in for a trusted contact&apos;s phone. It holds its own key, so Rose&apos;s screen can&apos;t read these messages. In production they arrive by text or email from a provider, and that channel&apos;s security is what keeps the two keys apart. Both windows here run on one computer, so this demo shows the API boundary, not channel security.
+        This window stands in for Sarah&apos;s phone and holds its own key: Rose&apos;s screen can&apos;t read these messages. <a href="/about">How this differs from production</a>
       </p>
       {inbox && (
         <div className="sk-card tint stack-sm" style={{ padding: 14 }}>

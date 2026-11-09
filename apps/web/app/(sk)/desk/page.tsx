@@ -15,8 +15,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ e
   const header = (
     <header className="stack-sm" style={{ maxWidth: 820 }}>
       <span className="sk-section-title">Protection Desk</span>
-      <h1 style={{ fontSize: "var(--text-2xl)" }}>What needs attention, why it was flagged, and what PayPal says happened.</h1>
-      <p className="soft small">Each row is a payment Second Key intervened on. The AI&apos;s assessment, the rule that decided, the person&apos;s decision and PayPal&apos;s state are separate columns, because they are separate facts.</p>
+      <h1 style={{ fontSize: "var(--text-2xl)" }}>Every decision, and the evidence behind it.</h1>
+      <p className="soft small">One row per payment Second Key stepped into. Open one to see what started it, what was detected and where, what the rules decided, what a person decided, what PayPal recorded, and the audit trail. Read-only: the Desk can&apos;t approve, capture or cancel anything.</p>
     </header>
   );
 

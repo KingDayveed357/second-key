@@ -1,6 +1,0 @@
-{
-  "version": "0.0.1",
-  "configurations": [
-    { "name": "web-ui-preview", "runtimeExecutable": "node", "runtimeArgs": ["C:/Users/DELL/AppData/Local/Temp/claude/b426ff8d2bc53d0f/5cecb5a7-b18e-4459-bff8-f44ffa541f50/scratchpad/run-ui.mjs"], "port": 3200 }
-  ]
-}
