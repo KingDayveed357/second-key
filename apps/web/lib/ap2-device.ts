@@ -29,9 +29,18 @@ export interface DeviceKey {
 }
 
 let memory: DeviceKey | undefined;
+let pending: Promise<DeviceKey> | undefined;
 
-/** Rose's device key: loaded from IndexedDB, or generated (non-extractable) and stored. */
-export async function deviceKey(): Promise<DeviceKey> {
+/**
+ * Rose's device key: loaded from IndexedDB, or generated (non-extractable) and stored. Concurrent
+ * callers (both AP2 panels mount together) share one load, so the page never holds two keys while the
+ * server enrols one per payer.
+ */
+export function deviceKey(): Promise<DeviceKey> {
+  return (pending ??= load());
+}
+
+async function load(): Promise<DeviceKey> {
   if (memory) return memory;
   try {
     const stored = await idb<{ privateKey: CryptoKey; publicJwk: DeviceKey["publicJwk"] } | undefined>("readonly", (s) => s.get(ID));

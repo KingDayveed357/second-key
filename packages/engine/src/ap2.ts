@@ -178,7 +178,7 @@ export async function verifyAp2(d: EngineDeps, who: Principal, idempotencyKey: s
         trusted_keys: { issuers: await thumbs(req.trust.issuers as { keys: JWK[] }), merchants: await thumbs(req.trust.merchants as { keys: JWK[] } | undefined) },
         created_at: nowDate.toISOString(),
       };
-      await tx.client.query("INSERT INTO ap2_verifications (id, tenant_id, idempotency_key, request_hash, decision, response, settlement, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", [
+      await tx.client.query("INSERT INTO ap2_verifications (id, tenant_id, idempotency_key, request_hash, decision, response, settlement, created_at, principal) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", [
         id,
         who.tenantId,
         idempotencyKey,
@@ -187,6 +187,7 @@ export async function verifyAp2(d: EngineDeps, who: Principal, idempotencyKey: s
         JSON.stringify(body),
         settlement ? JSON.stringify(settlement) : null,
         nowDate,
+        who.principal,
       ]);
       await appendAudit(tx, {
         tenantId: who.tenantId,

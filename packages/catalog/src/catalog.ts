@@ -15,13 +15,36 @@ export interface CatalogResult {
   errors: { product_id: string; error: string }[];
 }
 
+/** A search hit: the facts as the search returned them, plus what a shopper needs to see it. */
+export interface SearchHit {
+  facts: ProductFacts;
+  image?: string;
+}
+
+export interface SearchOptions {
+  /** Only offers at or under this price (USD cents). */
+  maxCents?: number;
+  limit?: number;
+}
+
 export interface CatalogSource {
   readonly name: string;
   getProducts(ids: string[]): Promise<CatalogResult>;
+  /** Product search. What a search returns is what an agent sees; verification re-fetches by id. */
+  search?(query: string, o?: SearchOptions): Promise<SearchHit[]>;
 }
+
+const within = (f: ProductFacts, max?: number) => max === undefined || f.offers.some((o) => o.currency === "USD" && o.price_cents <= max);
 
 export class FixtureCatalog implements CatalogSource {
   readonly name = "fixture";
+  async search(query: string, o: SearchOptions = {}): Promise<SearchHit[]> {
+    const terms = query.toLowerCase().split(/\W+/).filter((t) => t.length > 2);
+    return [...fixtureFacts().values()]
+      .filter((f) => terms.some((t) => `${f.title} ${f.category ?? ""}`.toLowerCase().includes(t)) && within(f, o.maxCents))
+      .slice(0, o.limit ?? 12)
+      .map((facts) => ({ facts }));
+  }
   async getProducts(ids: string[]): Promise<CatalogResult> {
     const all = fixtureFacts();
     const facts = new Map<string, ProductFacts>();
@@ -86,8 +109,21 @@ export function normaliseChannel3(raw: unknown, now = new Date()): ProductFacts 
     const label = str(sel.label);
     if (!name || !label) continue;
     if (name === "color" || name === "colour") {
-      if (/^[A-Za-z][A-Za-z /&-]{1,40}$/.test(label)) attributes["color"] = label;
+      // "Black/Black" is black; "Black/White" stays as it is (several colours).
+      const parts = label.split("/").map((x) => x.trim());
+      const one = parts.every((x) => x.toLowerCase() === parts[0]!.toLowerCase()) ? parts[0]! : label;
+      if (/^[A-Za-z][A-Za-z /&-]{1,40}$/.test(one)) attributes["color"] = one;
     } else put(name, label);
+  }
+  // Most listings carry no colour field. Take it from the title only when the title names exactly
+  // one colour; otherwise leave it missing, which an attribute rule treats as unresolved.
+  if (!attributes["color"]) {
+    const fromTitle = colourOfTitle(str(p["title"]) ?? "");
+    const fromText = fromTitle ? undefined : colourOfDescription(str(p["description"]) ?? "");
+    if (fromTitle ?? fromText) {
+      attributes["color"] = (fromTitle ?? fromText)!;
+      attributes["color_source"] = fromTitle ? "title" : "description";
+    }
   }
 
   const brands = Array.isArray(p["brands"]) ? (p["brands"] as unknown[]) : [];
@@ -114,6 +150,49 @@ export function normaliseChannel3(raw: unknown, now = new Date()): ProductFacts 
   });
 }
 
+// Colour families, longest first so "rose gold" wins over "gold" and "off white" over "white".
+const COLOURS = [
+  "rose gold", "rose goldtone", "goldtone", "gold tone", "silvertone", "silver tone", "space gray", "space grey", "off white", "navy blue", "light blue", "dark blue", "dark green",
+  "gold", "silver", "black", "white", "grey", "gray", "blue", "red", "green", "pink", "purple", "yellow", "orange",
+  "brown", "beige", "navy", "teal", "ivory", "cream", "bronze", "copper", "graphite", "champagne", "burgundy", "tan", "khaki",
+].sort((a, b) => b.length - a.length);
+const CANONICAL: Record<string, string> = { "space grey": "space gray", grey: "gray", "rose goldtone": "rose gold", goldtone: "gold", "gold tone": "gold", silvertone: "silver", "silver tone": "silver" };
+
+/** The one colour a title names, title-cased; undefined when it names none or several. */
+export function colourOfTitle(title: string): string | undefined {
+  let t = ` ${title.toLowerCase().replace(/[^a-z]+/g, " ")} `;
+  const found = new Set<string>();
+  for (const c of COLOURS) {
+    if (t.includes(` ${c} `)) {
+      found.add(CANONICAL[c] ?? c);
+      t = t.split(` ${c} `).join("  ");
+    }
+  }
+  if (found.size !== 1) return undefined;
+  return [...found][0]!.replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
+/**
+ * The colour a description states as the product's own ("… a 40mm smartwatch in Gold", "Colour: Navy"),
+ * only when every such statement names the same colour. Colours merely mentioned don't count.
+ */
+export function colourOfDescription(text: string): string | undefined {
+  const found = new Set<string>();
+  const re = /\b(?:in|colou?r(?:way)?\s*:?|finish(?:ed)? in)\s+((?:[a-z]+[\s-]){0,1}[a-z]+)\b/gi;
+  for (const m of text.matchAll(re)) {
+    const c = colourOfTitle(m[1]!);
+    if (c) found.add(c);
+  }
+  return found.size === 1 ? [...found][0] : undefined;
+}
+
+const mainImage = (p: Record<string, unknown>): string | undefined => {
+  const imgs = Array.isArray(p["images"]) ? (p["images"] as Record<string, unknown>[]) : [];
+  const img = imgs.find((i) => i["is_main_image"]) ?? imgs[0];
+  const url = str(img?.["cleaned_url"]) ?? str(img?.["url"]);
+  return url && url.startsWith("https://") ? url : undefined;
+};
+
 export class Channel3Catalog implements CatalogSource {
   readonly name = "channel3";
   readonly #key: string;
@@ -125,6 +204,30 @@ export class Channel3Catalog implements CatalogSource {
     this.#key = o.apiKey;
     this.#fetch = o.fetchImpl ?? fetch;
     this.#base = o.baseUrl ?? "https://api.trychannel3.com";
+  }
+
+  /** POST /v1/search (verified live 2026-10-12 and 2026-11-09). Unmappable hits are skipped. */
+  async search(query: string, o: SearchOptions = {}): Promise<SearchHit[]> {
+    const res = await this.#fetch(`${this.#base}/v1/search`, {
+      method: "POST",
+      headers: { "x-api-key": this.#key, "content-type": "application/json" },
+      body: JSON.stringify({ query, limit: Math.min(30, o.limit ?? 20), ...(o.maxCents !== undefined ? { filters: { price: { max_price: o.maxCents / 100 } } } : {}) }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) throw new Error(`channel3 search: HTTP ${res.status}`);
+    const body = (await res.json()) as { products?: unknown[] };
+    const hits: SearchHit[] = [];
+    for (const raw of body.products ?? []) {
+      try {
+        const facts = normaliseChannel3(raw);
+        if (!within(facts, o.maxCents)) continue;
+        const image = mainImage(raw as Record<string, unknown>);
+        hits.push({ facts, ...(image ? { image } : {}) });
+      } catch {
+        /* a hit without the essentials can't be bought or checked */
+      }
+    }
+    return hits;
   }
 
   async getProducts(ids: string[]): Promise<CatalogResult> {
@@ -158,6 +261,12 @@ export class FallbackCatalog implements CatalogSource {
     this.fallback = fallback;
     this.name = `${primary.name}+${fallback.name}`;
   }
+  /** The live source's search only: a failing live search is an error, never silently fixtures. */
+  async search(query: string, o?: SearchOptions): Promise<SearchHit[]> {
+    if (!this.primary.search) throw new Error(`${this.primary.name} has no search`);
+    return this.primary.search(query, o);
+  }
+
   async getProducts(ids: string[]): Promise<CatalogResult> {
     const first = await this.primary.getProducts(ids);
     const missing = ids.filter((id) => !first.facts.has(id));

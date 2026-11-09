@@ -1,5 +1,6 @@
 import { Agent } from "./agent";
 import { MandateDemo } from "./mandates";
+import { RealShop } from "./shop";
 
 export const metadata = { title: "Agents · Second Key" };
 
@@ -26,6 +27,7 @@ export default function Page() {
           <p className="soft small">Rose signs an AP2 mandate on her own device. Five runs: one goes through; each of the others is stopped by a different check.</p>
         </header>
         <MandateDemo />
+        <RealShop />
       </section>
     </div>
   );

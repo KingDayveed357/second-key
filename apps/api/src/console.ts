@@ -7,7 +7,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { UnavailableLlm, evaluateScreen, type LlmClient } from "@witness/ai";
 import type { ProductFacts } from "@witness/core";
-import { demoPolicy, nowOf, revokeIntent, type EngineDeps, type Principal } from "@witness/engine";
+import { ap2DeskFeed, demoPolicy, nowOf, revokeIntent, type EngineDeps, type Principal } from "@witness/engine";
 import { appendAudit, startEpoch, withTx } from "@witness/db";
 
 type Auth = (...scopes: string[]) => (req: FastifyRequest, reply: FastifyReply) => Promise<unknown>;
@@ -151,6 +151,22 @@ export function registerConsole(app: FastifyInstance, d: EngineDeps, auth: Auth,
     const since = e && e.epoch > 1 ? (e.started_at as Date) : undefined;
     const rows = (await ledger(d, tenantOf(req), limit, since)).map(({ reasons: _r, intent_id: _i, ...rest }) => rest);
     return { purchases: rows, session_started_at: since?.toISOString() ?? null, read_only: true };
+  });
+
+  // AP2 mandate verifications (10 Nov), for the Desk's "Agent mandates" view. Read-only.
+  const epochStart = async () => {
+    const e = (await d.pool.query("SELECT epoch, started_at FROM audit_epochs ORDER BY epoch DESC LIMIT 1")).rows[0];
+    return e && e.epoch > 1 ? (e.started_at as Date) : undefined;
+  };
+  app.get<{ Querystring: { limit?: string } }>("/v1/demo/ap2/incidents", { preHandler: auth("demo", "admin") }, async (req) => {
+    const since = await epochStart();
+    const rows = await ap2DeskFeed(d, tenantOf(req), { limit: Number(req.query.limit ?? 200) || 200, ...(since ? { since } : {}) });
+    return { verifications: rows, session_started_at: since?.toISOString() ?? null, read_only: true };
+  });
+  app.get<{ Querystring: { limit?: string; scope?: string } }>("/v1/console/ap2", { preHandler: auth("ops", "admin") }, async (req) => {
+    const since = req.query.scope === "session" ? await epochStart() : undefined;
+    const rows = await ap2DeskFeed(d, tenantOf(req), { limit: Number(req.query.limit ?? 200) || 200, ...(since ? { since } : {}) });
+    return { verifications: rows, session_started_at: since?.toISOString() ?? null };
   });
 
   app.get("/v1/console/holds", { preHandler: auth("ops", "admin") }, async (req) => {

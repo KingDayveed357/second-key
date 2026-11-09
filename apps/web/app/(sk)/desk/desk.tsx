@@ -240,7 +240,8 @@ export function Desk({ mode }: { mode: Mode }) {
       isExternalFilterPresent: () => live.current.filterOn,
       doesExternalFilterPass: (n: { data?: GridRow }) => (n.data ? live.current.passes(isDetail(n.data) ? n.data.parent : n.data) : true),
       isFullWidthRow: (p: { rowNode: { data?: GridRow } }) => isDetail(p.rowNode.data),
-      getRowHeight: (p: { data?: GridRow }) => (isDetail(p.data) ? 132 : 52),
+      // Detail rows start at a guess and then size themselves to their content (EvidencePeek).
+      getRowHeight: (p: { data?: GridRow }) => (isDetail(p.data) ? 140 : 52),
       postSortRows: (p: { nodes: { data?: GridRow }[] }) => {
         // Keep each evidence peek directly under its incident, whatever the sort.
         const details = new Map(p.nodes.filter((n) => isDetail(n.data)).map((n) => [(n.data as DetailRow).parent.id, n]));
@@ -262,7 +263,7 @@ export function Desk({ mode }: { mode: Mode }) {
     }),
     [],
   );
-  const fullWidthRenderer = useCallback((p: { data: DetailRow }) => <EvidencePeek row={p.data.parent} mode={mode} />, [mode]);
+  const fullWidthRenderer = useCallback((p: { data: DetailRow; node: { rowHeight?: number | null; setRowHeight(h: number): void }; api: { onRowHeightChanged(): void } }) => <EvidencePeek row={p.data.parent} mode={mode} node={p.node} gridApi={p.api} />, [mode]);
 
   // Narrow screens keep the columns that answer "what, how much, and where does it stand"; the rest stay
   // one tap away in the incident detail. Column visibility follows the viewport, not a fixed breakpoint list.
@@ -459,23 +460,45 @@ function EmptyDesk() {
 }
 
 /** Inline evidence peek: the proof chain for one incident, without leaving the queue. */
-function EvidencePeek({ row, mode }: { row: DeskRow; mode: Mode }) {
+/**
+ * The inline evidence row. Its height follows its content (it wraps on narrow screens), so it measures
+ * itself and tells the grid, instead of a fixed height that would spill over the rows below.
+ */
+function EvidencePeek({ row, mode, node, gridApi }: { row: DeskRow; mode: Mode; node?: { rowHeight?: number | null; setRowHeight(h: number): void }; gridApi?: { onRowHeightChanged(): void } }) {
   const [ev, setEv] = useState<EvidenceResp | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el || !node || !gridApi) return;
+    const fit = () => {
+      const h = Math.ceil(el.scrollHeight) + 2;
+      if (Math.abs((node.rowHeight ?? 0) - h) > 1) {
+        node.setRowHeight(h);
+        gridApi.onRowHeightChanged();
+      }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [node, gridApi]);
   useEffect(() => {
     api<EvidenceResp>(`/v1/purchases/${row.id}/evidence`, { console: mode === "operator" }).then(setEv, () => {});
   }, [row.id, mode]);
   const quotes = ev ? rankEvidence(ev.checks.filter((c) => c.phase === "SCREEN" || c.phase === "CONTEXT").flatMap((c) => c.evidence ?? [])) : [];
   const step = (label: string, who: string, value: string) => (
-    <div style={{ flex: "1 1 0", minWidth: 0, borderTop: "3px solid var(--line-strong)", paddingTop: 6 }}>
+    <div style={{ minWidth: 0, borderTop: "3px solid var(--line-strong)", paddingTop: 6 }}>
       <div className="xs muted">
         {label} · {who}
       </div>
-      <div className="small" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
+      <div className="small" style={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.35 }} title={value}>
+        {value}
+      </div>
     </div>
   );
   return (
-    <div style={{ padding: "10px 16px 10px 56px", background: "var(--surface-2)", height: "100%", display: "flex", flexDirection: "column", gap: 8, whiteSpace: "normal" }}>
-      <div className="row" style={{ gap: 12, flexWrap: "nowrap" }}>
+    <div ref={boxRef} className="sk-peek" style={{ background: "var(--surface-2)", display: "flex", flexDirection: "column", gap: 8, whiteSpace: "normal", lineHeight: 1.4 }}>
+      <div className="sk-peek-steps">
         {step("Evidence", "AI, quotes checked by code", quotes[0] ? `“${quotes[0].quote}”` : row.evidenceCount ? "Loading…" : "No quoted evidence")}
         {step("Rule", "policy", row.policy)}
         {step("Decision", "person", row.review === "Not needed" ? "No review needed" : `${row.review}${row.decidedBy ? ` · ${deciderOf(row.decidedBy)}` : ""}`)}

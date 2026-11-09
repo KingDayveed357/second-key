@@ -557,6 +557,62 @@ paths:
       responses:
         "200": { description: "{ decision, constraints, findings, receipts, facts_attestation, presented, jwks_uri }" }
         "422": { $ref: "#/components/responses/Problem" }
+  /demo/ap2/incidents:
+    get:
+      tags: [ap2, demo]
+      summary: "AP2 verifications in the current demo session, for the Protection Desk (read-only)"
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 300 } }
+      responses:
+        "200": { description: "{ verifications: [{ id, created_at, decision, kind, run, product, caught_by, layers: { signatures, ap2, facts, ledger, paypal }, reasons, receipts, settlement }] }" }
+  /console/ap2:
+    get:
+      tags: [ap2, console]
+      summary: AP2 verifications for operators, layer by layer (read-only)
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 300 } }
+        - { name: scope, in: query, schema: { type: string, enum: [session] } }
+      responses:
+        "200": { description: Same rows as /demo/ap2/incidents }
+  /me/demo/ap2/shop/plan:
+    post:
+      tags: [ap2, demo]
+      summary: "Real-product demo: draft the search, rules and budget from the shopper's words (Claude Haiku; patterns without a model)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [need], properties: { need: { type: string, minLength: 3, maxLength: 300 } } }
+      responses:
+        "200": { description: "{ plan: { query, max_cents, rules: [{ attribute, any_of, none_of }] }, summary, drafted_by: ai | rules }" }
+  /me/demo/ap2/shop/search:
+    post:
+      tags: [ap2, demo]
+      summary: "Real-product demo: Channel3 search within budget, with what each listing's own data says about each rule"
+      responses:
+        "200": { description: "{ source: channel3, hits: [{ id, title, brand, image, price_cents, retailer, attributes, rules }] }" }
+        "502": { $ref: "#/components/responses/Problem" }
+  /me/demo/ap2/shop/runs:
+    post:
+      tags: [ap2, demo]
+      summary: "Real-product demo: the agent closes Rose's signed mandates for a Channel3 product; Second Key re-fetches it, verifies and settles on the PayPal sandbox"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode, product_id, open_checkout, open_payment]
+              properties:
+                mode: { type: string, enum: [buy, swap, hide_list] }
+                product_id: { type: string, description: Channel3 product id }
+                swap_to: { type: string, description: "swap: the product the order sent to PayPal holds instead" }
+                open_checkout: { type: string }
+                open_payment: { type: string }
+      responses:
+        "201": { description: "{ mode, agent, verification, settlement, caught_by }" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
 components:
   securitySchemes:
     apiKey: { type: http, scheme: bearer, description: "Witness API key; scopes agent:purchase | ops | demo | admin" }

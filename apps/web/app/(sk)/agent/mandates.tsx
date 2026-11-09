@@ -14,14 +14,14 @@ import { Button, Demo, Notice, Pill } from "../_ui/ui";
 import { ReceiptRow } from "../_ap2/receipt";
 
 type RunName = "conforms" | "steered" | "wrong_product" | "cart_swap" | "reused";
-type CaughtBy = "none" | "ap2_constraints" | "secondkey_facts" | "secondkey_ledger" | "paypal_order" | "signatures" | "cannot_confirm";
+export type CaughtBy = "none" | "ap2_constraints" | "secondkey_facts" | "secondkey_ledger" | "paypal_order" | "signatures" | "cannot_confirm";
 
-interface Constraint {
+export interface Constraint {
   type: string;
   result: "pass" | "fail" | "unresolved";
   detail?: string;
 }
-interface Verification {
+export interface Verification {
   verification_id: string;
   decision: "CONFORMS" | "NONCONFORMING" | "CANNOT_CONFIRM" | "COSIGN_REQUIRED";
   error?: string;
@@ -30,7 +30,7 @@ interface Verification {
   facts_attestation: string | null;
   receipts: { checkout: string; payment: string | null };
 }
-interface Settlement {
+export interface Settlement {
   settlement_id: string;
   state: string;
   order_id: string;
@@ -55,7 +55,7 @@ const RUNS: { name: RunName; label: string }[] = [
   { name: "reused", label: "Mandate reused" },
 ];
 
-const HEADLINE: Record<CaughtBy, string> = {
+export const HEADLINE: Record<CaughtBy, string> = {
   none: "Bought: every check passed",
   ap2_constraints: "Refused by AP2's own constraints",
   secondkey_facts: "AP2 said yes. Second Key's facts said no.",
@@ -65,11 +65,11 @@ const HEADLINE: Record<CaughtBy, string> = {
   cannot_confirm: "Paused: Second Key couldn't confirm it",
 };
 
-const FINAL = ["CAPTURED", "VOIDED", "CAPTURE_DECLINED", "REFUSED"];
+export const FINAL = ["CAPTURED", "VOIDED", "CAPTURE_DECLINED", "REFUSED"];
 
 /** One verification per page load, even if React runs the effect twice. */
 let session: Promise<Response> | null = null;
-const startSession = (reset = false) => (reset ? (session = fetch("/api/sk/session?reset=1", { method: "POST" })) : (session ??= fetch("/api/sk/session", { method: "POST" })));
+export const startSession = (reset = false) => (reset ? (session = fetch("/api/sk/session?reset=1", { method: "POST" })) : (session ??= fetch("/api/sk/session", { method: "POST" })));
 
 export function MandateDemo() {
   const [setup, setSetup] = useState<(Ap2Setup & { merchant: Ap2Setup["merchant"] }) | null>(null);
@@ -232,7 +232,7 @@ const MARK: Record<Status, { text: string; tone: "ok" | "bad" | "held" | "neutra
 };
 
 /** The trust ladder: who checked what, and which rung stopped the run. */
-function Ladder({ view, settlement }: { view: RunView; settlement: Settlement | null }) {
+export function Ladder({ view, settlement, factsPass = "size 10 and not white, on facts Second Key fetched and signed" }: { view: Pick<RunView, "verification" | "first">; settlement: Settlement | null; factsPass?: string }) {
   const v = view.verification;
   const standard = v.constraints.filter((c) => /^(checkout|payment)\./.test(c.type));
   const ours = v.constraints.filter((c) => c.type.startsWith("x-secondkey."));
@@ -266,7 +266,7 @@ function Ladder({ view, settlement }: { view: RunView; settlement: Settlement | 
       name: "Second Key's facts",
       who: "Second Key",
       status: facts,
-      detail: ours.length ? ours.map((c) => (c.result === "pass" ? "size 10 and not white, on facts Second Key fetched and signed" : (c.detail ?? c.result))).join("; ") : "No attribute rule in this mandate.",
+      detail: ours.length ? ours.map((c) => (c.result === "pass" ? factsPass : (c.detail ?? c.result))).join("; ") : "No attribute rule in this mandate.",
     },
     {
       name: "Ledger",
@@ -304,7 +304,7 @@ function Ladder({ view, settlement }: { view: RunView; settlement: Settlement | 
 }
 
 /** Every signed artifact of the run, decoded, with its signature checked here against the JWKS. */
-function Receipts({ view, settlement }: { view: RunView; settlement: Settlement | null }) {
+export function Receipts({ view, settlement }: { view: Pick<RunView, "verification">; settlement: Settlement | null }) {
   const items: { label: string; jwt: string }[] = [
     { label: "Mandate receipt: checkout", jwt: view.verification.receipts.checkout },
     ...(view.verification.receipts.payment ? [{ label: "Mandate receipt: payment", jwt: view.verification.receipts.payment }] : []),

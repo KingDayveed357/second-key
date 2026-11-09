@@ -1,0 +1,456 @@
+{
+ "products": [
+  {
+   "id": "qpUILDr",
+   "title": "Galaxy Watch4 Aluminum Smartwatch 40mm LTE",
+   "description": "The Samsung Galaxy Watch4 is a 40mm aluminum smartwatch in Gold, featuring LTE connectivity for staying connected on the go. It is equipped with advanced health monitoring tools, including body composition analysis, ECG monitoring, and continuous SpO2 tracking. Designed for fitness enthusiasts, it o",
+   "brands": [
+    {
+     "id": "Mbqx",
+     "name": "Samsung"
+    }
+   ],
+   "images": [
+    {
+     "url": "https://cdn.trychannel3.com/7cb941ce-b1f2-440a-b94a-72c9a311171c?aid=01M709DMTBY291P24F4ZP5EMGP&mid=LPzf",
+     "cleaned_url": "https://cdn.trychannel3.com/cleaned/v1/7cb941ce-b1f2-440a-b94a-72c9a311171c?aid=01M709DMTBY291P24F4ZP5EMGP&mid=LPzf",
+     "is_main_image": true
+    }
+   ],
+   "category": {
+    "slug": "smart-watches",
+    "title": "Smart Watches",
+    "path": [
+     {
+      "slug": "apparel-accessories",
+      "title": "Apparel & Accessories"
+     },
+     {
+      "slug": "jewelry",
+      "title": "Jewelry"
+     },
+     {
+      "slug": "smart-watches",
+      "title": "Smart Watches"
+     }
+    ],
+    "has_children": false
+   },
+   "materials": [
+    "Aluminum"
+   ],
+   "key_features": [
+    "LTE connectivity",
+    "Body Composition Analysis",
+    "Advanced Sleep / Continuous SpO2 tracking"
+   ],
+   "offers": [
+    {
+     "domain": "newegg.com",
+     "price": {
+      "price": 206.99,
+      "compare_at_price": null,
+      "currency": "USD"
+     },
+     "availability": "InStock",
+     "condition": "new"
+    }
+   ],
+   "variants": null,
+   "structured_attributes": {
+    "jewelry-material": [
+     "Aluminum"
+    ]
+   }
+  },
+  {
+   "id": "Ps0xuwT",
+   "title": "Timex iConnect Active+ Rose Gold-Tone Expansion Band",
+   "description": "Reach every goal and take your workouts a step further with our iConnect® Active+ smartwatch offering more sport functionality than ever before. Featuring updated technology the iConnect Active+ tracks more than just steps; this smartwatch helps you monitor your heart rate sleep and activity in addi",
+   "brands": [
+    {
+     "id": "rWuy",
+     "name": "Timex"
+    }
+   ],
+   "images": [
+    {
+     "url": "https://cdn.trychannel3.com/1464a088-8539-4612-9c70-b49f1e890fb4?aid=01M709DMTBY291P24F4ZP5EMGP&mid=BsaX",
+     "cleaned_url": "https://cdn.trychannel3.com/cleaned/v1/1464a088-8539-4612-9c70-b49f1e890fb4?aid=01M709DMTBY291P24F4ZP5EMGP&mid=BsaX",
+     "is_main_image": true
+    }
+   ],
+   "category": {
+    "slug": "smart-watches",
+    "title": "Smart Watches",
+    "path": [
+     {
+      "slug": "apparel-accessories",
+      "title": "Apparel & Accessories"
+     },
+     {
+      "slug": "jewelry",
+      "title": "Jewelry"
+     },
+     {
+      "slug": "smart-watches",
+      "title": "Smart Watches"
+     }
+    ],
+    "has_children": false
+   },
+   "materials": [
+    "Gold"
+   ],
+   "key_features": [
+    "Heart rate monitoring",
+    "Sleep tracking",
+    "Activity tracking"
+   ],
+   "offers": [
+    {
+     "domain": "walmart.com",
+     "price": {
+      "price": 35.15,
+      "compare_at_price": 39.08,
+      "currency": "USD"
+     },
+     "availability": "InStock",
+     "condition": "new"
+    },
+    {
+     "domain": "newegg.com",
+     "price": {
+      "price": 35.15,
+      "compare_at_price": null,
+      "currency": "USD"
+     },
+     "availability": "InStock",
+     "condition": "new"
+    }
+   ],
+   "variants": null,
+   "structured_attributes": {
+    "jewelry-material": [
+     "Gold"
+    ]
+   }
+  },
+  {
+   "id": "8cthMte",
+   "title": "Bold Motion Smartwatch",
+   "description": "The Movado BOLD Motion smartwatch combines a classic analog aesthetic with modern connectivity. It features a 39mm yellow-gold-tone ion-plated stainless steel case paired with a sleek white silicone strap and a round white dial with LED indicators. Engineered by HP, it is compatible with Android and",
+   "brands": [
+    {
+     "id": "B2jo",
+     "name": "Movado"
+    },
+    {
+     "id": "NdmC",
+     "name": "HP"
+    }
+   ],
+   "images": [
+    {
+     "url": "https://cdn.trychannel3.com/a5904857-11d6-4c6c-bd24-de647b67369f?aid=01M709DMTBY291P24F4ZP5EMGP&mid=Mu36",
+     "cleaned_url": "https://cdn.trychannel3.com/cleaned/v1/a5904857-11d6-4c6c-bd24-de647b67369f?aid=01M709DMTBY291P24F4ZP5EMGP&mid=Mu36",
+     "is_main_image": true
+    }
+   ],
+   "category": {
+    "slug": "smart-watches",
+    "title": "Smart Watches",
+    "path": [
+     {
+      "slug": "apparel-accessories",
+      "title": "Apparel & Accessories"
+     },
+     {
+      "slug": "jewelry",
+      "title": "Jewelry"
+     },
+     {
+      "slug": "smart-watches",
+      "title": "Smart Watches"
+     }
+    ],
+    "has_children": false
+   },
+   "materials": [
+    "Stainless Steel",
+    "Silicone"
+   ],
+   "key_features": [
+    "Bluetooth connectivity",
+    "Engineered by HP",
+    "Android and iOS compatible"
+   ],
+   "offers": [
+    {
+     "domain": "kay.com",
+     "price": {
+      "price": 165,
+      "compare_at_price": 550,
+      "currency": "USD"
+     },
+     "availability": "InStock",
+     "condition": "new"
+    }
+   ],
+   "variants": null,
+   "structured_attributes": {
+    "pattern": [
+     "Solid"
+    ],
+    "jewelry-material": [
+     "Stainless steel"
+    ]
+   }
+  },
+  {
+   "id": "BgS91lx",
+   "title": "PULSE Smartwatch",
+   "description": "The Reebok PULSE Smartwatch is designed to be your ultimate fitness companion, blending athletic heritage with advanced technology. It features a vibrant 1.43\" AMOLED display, a 10-day battery life, and tracks over 80 sports modes. Monitor your heart rate, sleep, blood oxygen, and stress levels with",
+   "brands": [
+    {
+     "id": "KStX",
+     "name": "Reebok"
+    }
+   ],
+   "images": [
+    {
+     "url": "https://cdn.trychannel3.com/c0a2f016-b5f4-4b6b-b217-e0073ed0c4d0?aid=01M709DMTBY291P24F4ZP5EMGP&mid=K6RA",
+     "cleaned_url": "https://cdn.trychannel3.com/cleaned/v1/c0a2f016-b5f4-4b6b-b217-e0073ed0c4d0?aid=01M709DMTBY291P24F4ZP5EMGP&mid=K6RA",
+     "is_main_image": true
+    }
+   ],
+   "category": {
+    "slug": "smart-watches",
+    "title": "Smart Watches",
+    "path": [
+     {
+      "slug": "apparel-accessories",
+      "title": "Apparel & Accessories"
+     },
+     {
+      "slug": "jewelry",
+      "title": "Jewelry"
+     },
+     {
+      "slug": "smart-watches",
+      "title": "Smart Watches"
+     }
+    ],
+    "has_children": false
+   },
+   "materials": [],
+   "key_features": [
+    "1.43\" AMOLED Screen",
+    "10-day battery life",
+    "24/7 heart rate, SpO2 and sleep monitoring"
+   ],
+   "offers": [
+    {
+     "domain": "macys.com",
+     "price": {
+      "price": 139.99,
+      "compare_at_price": null,
+      "currency": "USD"
+     },
+     "availability": "InStock",
+     "condition": "new"
+    },
+    {
+     "domain": "bestbuy.com",
+     "price": {
+      "price": 139.99,
+      "compare_at_price": null,
+      "currency": "USD"
+     },
+     "availability": "InStock",
+     "condition": "new"
+    }
+   ],
+   "variants": null,
+   "structured_attributes": {
+    "pattern": [
+     "Solid"
+    ],
+    "jewelry-material": [
+     "Alloy"
+    ]
+   }
+  },
+  {
+   "id": "YhUzR77",
+   "title": "Tous T-band Mesh Smartwatch",
+   "description": "This is a TOUS T-Band Mesh smartwatch featuring a rectangular touchscreen display and a gold-colored aluminum case. It comes equipped with a stainless steel mesh bracelet that utilizes a Milanese closure with a safety clasp. The watch offers comprehensive smart features including activity tracking (",
+   "brands": [
+    {
+     "id": "OAXy",
+     "name": "TOUS"
+    }
+   ],
+   "images": [
+    {
+     "url": "https://cdn.trychannel3.com/3b3f1f3b-f667-47df-a5c2-558d453a1cb7?aid=01M709DMTBY291P24F4ZP5EMGP&mid=VUU5",
+     "cleaned_url": "https://cdn.trychannel3.com/cleaned/v1/3b3f1f3b-f667-47df-a5c2-558d453a1cb7?aid=01M709DMTBY291P24F4ZP5EMGP&mid=VUU5",
+     "is_main_image": true
+    }
+   ],
+   "category": {
+    "slug": "smart-watches",
+    "title": "Smart Watches",
+    "path": [
+     {
+      "slug": "apparel-accessories",
+      "title": "Apparel & Accessories"
+     },
+     {
+      "slug": "jewelry",
+      "title": "Jewelry"
+     },
+     {
+      "slug": "smart-watches",
+      "title": "Smart Watches"
+     }
+    ],
+    "has_children": false
+   },
+   "materials": [
+    "steel",
+    "aluminum"
+   ],
+   "key_features": [
+    "1.47-inch rectangular TFT-DLC touchscreen",
+    "Gold-colored aluminum case",
+    "Stainless steel mesh bracelet with Milanese closure"
+   ],
+   "offers": [
+    {
+     "domain": "tous.com",
+     "price": {
+      "price": 288,
+      "compare_at_price": null,
+      "currency": "USD"
+     },
+     "availability": "InStock",
+     "condition": "new"
+    }
+   ],
+   "variants": {
+    "options": [
+     {
+      "name": "Color",
+      "values": [
+       {
+        "label": "Gold",
+        "exists": true,
+        "available": null,
+        "thumbnail_url": "https://cdn.trychannel3.com/3b3f1f3b-f667-47df-a5c2-558d453a1cb7",
+        "product_id": "YhUzR77"
+       },
+       {
+        "label": "Gray",
+        "exists": true,
+        "available": null,
+        "thumbnail_url": "https://cdn.trychannel3.com/f67f66d1-7667-4491-a1a1-7428bd03cd55",
+        "product_id": "PFu05LB"
+       },
+       {
+        "label": "Rose Gold",
+        "exists": true,
+        "available": null,
+        "thumbnail_url": "https://cdn.trychannel3.com/67b86375-1f43-4ec0-bcde-c5ba8efc4992",
+        "product_id": "0h0IbOy"
+       }
+      ]
+     }
+    ],
+    "selected": [
+     {
+      "name": "Color",
+      "label": "Gold"
+     }
+    ]
+   },
+   "structured_attributes": {
+    "jewelry-material": [
+     "Stainless steel",
+     "Aluminum"
+    ],
+    "pattern": [
+     "Rainbow"
+    ]
+   }
+  },
+  {
+   "id": "iXS2gKD",
+   "title": "Women's Connect It Prism Smartwatch",
+   "description": "The Anne Klein Connect It Prism Smartwatch for women is a sophisticated blend of fashion and technology. This 30mm timepiece features a vivid AMOLED high-definition touchscreen display and a rotating crown for easy navigation. The watch comes with two interchangeable straps—a gold-tone metal alloy b",
+   "brands": [
+    {
+     "id": "otIP",
+     "name": "Anne Klein"
+    }
+   ],
+   "images": [
+    {
+     "url": "https://cdn.trychannel3.com/c8435dc4-4a64-4052-829c-f89a6b5d0d1a?aid=01M709DMTBY291P24F4ZP5EMGP&mid=K6RA",
+     "cleaned_url": "https://cdn.trychannel3.com/cleaned/v1/c8435dc4-4a64-4052-829c-f89a6b5d0d1a?aid=01M709DMTBY291P24F4ZP5EMGP&mid=K6RA",
+     "is_main_image": true
+    }
+   ],
+   "category": {
+    "slug": "smart-watches",
+    "title": "Smart Watches",
+    "path": [
+     {
+      "slug": "apparel-accessories",
+      "title": "Apparel & Accessories"
+     },
+     {
+      "slug": "jewelry",
+      "title": "Jewelry"
+     },
+     {
+      "slug": "smart-watches",
+      "title": "Smart Watches"
+     }
+    ],
+    "has_children": false
+   },
+   "materials": [
+    "metal alloy",
+    "silicone"
+   ],
+   "key_features": [
+    "AMOLED high-definition touchscreen display",
+    "Bluetooth 5.0 wireless technology",
+    "Water resistant up to 1.5 meters for 30 minutes"
+   ],
+   "offers": [
+    {
+     "domain": "macys.com",
+     "price": {
+      "price": 90,
+      "compare_at_price": 120,
+      "currency": "USD"
+     },
+     "availability": "InStock",
+     "condition": "new"
+    }
+   ],
+   "variants": null,
+   "structured_attributes": {
+    "jewelry-material": [
+     "Alloy",
+     "Synthetic"
+    ],
+    "pattern": [
+     "Solid"
+    ]
+   }
+  }
+ ]
+}

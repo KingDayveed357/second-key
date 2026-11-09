@@ -30,13 +30,13 @@ const RUNS: Record<Ap2DemoRun, { product: string; narration: string }> = {
   reused: { product: "TRL-GRY-10", narration: "The agent buys the shoe, then tries to use Rose's same open mandate for a second pair." },
 };
 
-interface Parties {
+export interface Parties {
   agent: { privateKey: CryptoKey; jwk: JWK };
   merchant: { privateKey: CryptoKey; jwk: JWK };
 }
 let parties: Promise<Parties> | undefined;
 /** The demo agent's and merchant's keys live for the process; Rose's setup is fetched per run. */
-function demoParties(): Promise<Parties> {
+export function demoParties(): Promise<Parties> {
   parties ??= (async () => {
     const [a, m] = [await generateKeyPair("ES256", { extractable: true }), await generateKeyPair("ES256", { extractable: true })];
     return {
@@ -58,13 +58,20 @@ export async function ap2DemoSetup() {
       const f = facts.get(id)!;
       return { id, title: f.title, price_cents: f.offers[0]!.price_cents, color: f.attributes.color ?? null };
     }),
+    // Real-product runs (ap2-shop.ts): Channel3 products, sold through the demo market's checkout.
+    shop: { merchant: { id: "demo-market", name: "Demo Market", website: "https://market.secondkey.example" }, audiences: { checkout: "demo-market", payment: AP2_DEMO_AUD.payment } },
   };
 }
 
-type Err = { kind: "error"; status: number; title: string; detail?: string };
-const err = (status: number, title: string, detail?: string): Err => ({ kind: "error", status, title, ...(detail ? { detail } : {}) });
+/** What a demo run was, for the Protection Desk (ap2_verifications.demo, migration 0011). */
+export async function recordDemo(d: EngineDeps, verificationId: string, demo: Record<string, unknown>) {
+  await d.pool.query("UPDATE ap2_verifications SET demo = $2 WHERE id = $1", [verificationId, JSON.stringify(demo)]);
+}
 
-const P256 = (j: unknown): j is { kty: "EC"; crv: "P-256"; x: string; y: string } =>
+export type Err = { kind: "error"; status: number; title: string; detail?: string };
+export const err = (status: number, title: string, detail?: string): Err => ({ kind: "error", status, title, ...(detail ? { detail } : {}) });
+
+export const P256 = (j: unknown): j is { kty: "EC"; crv: "P-256"; x: string; y: string } =>
   !!j && typeof j === "object" && (j as JWK).kty === "EC" && (j as JWK).crv === "P-256" && typeof (j as JWK).x === "string" && typeof (j as JWK).y === "string" && !("d" in (j as object));
 
 /** Enrol Rose's device key: her own browser generated it and keeps the private half. */
@@ -85,10 +92,18 @@ export async function enrolTrustedSurface(d: EngineDeps, tenantId: string, shopp
  * The other parties' half of a run: the merchant signs a checkout for one product, and the agent
  * (the key bound in Rose's cnf) closes her two open mandates against it.
  */
-async function closeForDemo(p: Parties, signed: { openCheckout: string; openPayment: string }, facts: { product_id: string; title: string }, price: number, now: number) {
+export async function closeForDemo(
+  p: Parties,
+  signed: { openCheckout: string; openPayment: string },
+  facts: { product_id: string; title: string },
+  price: number,
+  now: number,
+  merchant: { id: string; name: string; website: string } = AP2_DEMO_MERCHANT,
+  aud: { checkout: string; payment: string } = AP2_DEMO_AUD,
+) {
   const checkout = {
     id: newId("chk"),
-    merchant: AP2_DEMO_MERCHANT,
+    merchant,
     line_items: [{ id: "li_1", item: { id: facts.product_id, title: facts.title, price }, quantity: 1, totals: [{ type: "total", amount: price }] }],
     status: "ready_for_complete",
     currency: "USD",
@@ -96,17 +111,17 @@ async function closeForDemo(p: Parties, signed: { openCheckout: string; openPaym
       { type: "subtotal", amount: price },
       { type: "total", amount: price },
     ],
-    links: [{ type: "terms_of_service", url: `${AP2_DEMO_MERCHANT.website}/terms` }],
+    links: [{ type: "terms_of_service", url: `${merchant.website}/terms` }],
   };
   const jwt = await new CompactSign(new TextEncoder().encode(JSON.stringify(checkout))).setProtectedHeader({ alg: "ES256", typ: "JWT", kid: p.merchant.jwk.kid! }).sign(p.merchant.privateKey);
   const hash = digest(jwt);
   const nonces = { checkout: randomBytes(16).toString("base64url"), payment: randomBytes(16).toString("base64url") };
-  const checkoutChain = await presentHop({ chain: signed.openCheckout, key: p.agent.privateKey, mandate: { vct: VCT.checkout, checkout_jwt: disclose(jwt), checkout_hash: hash }, aud: AP2_DEMO_AUD.checkout, nonce: nonces.checkout, iat: now });
+  const checkoutChain = await presentHop({ chain: signed.openCheckout, key: p.agent.privateKey, mandate: { vct: VCT.checkout, checkout_jwt: disclose(jwt), checkout_hash: hash }, aud: aud.checkout, nonce: nonces.checkout, iat: now });
   const paymentChain = await presentHop({
     chain: signed.openPayment,
     key: p.agent.privateKey,
-    mandate: { vct: VCT.payment, transaction_id: hash, payee: AP2_DEMO_MERCHANT, payment_amount: { amount: price, currency: "USD" }, payment_instrument: { id: "rose-paypal-wallet", type: "paypal", description: "Rose's PayPal (sandbox)" } },
-    aud: AP2_DEMO_AUD.payment,
+    mandate: { vct: VCT.payment, transaction_id: hash, payee: merchant, payment_amount: { amount: price, currency: "USD" }, payment_instrument: { id: "rose-paypal-wallet", type: "paypal", description: "Rose's PayPal (sandbox)" } },
+    aud: aud.payment,
     nonce: nonces.payment,
     iat: now,
   });
@@ -126,7 +141,7 @@ export interface Ap2DemoRunView {
   caught_by: CaughtBy;
 }
 
-function caughtBy(v: VerificationResponse): CaughtBy {
+export function caughtBy(v: VerificationResponse): CaughtBy {
   if (v.decision === "CONFORMS") return "none";
   if (v.error === "invalid_credential") return "signatures";
   if (v.findings.some((f) => f.code.startsWith("ledger."))) return "secondkey_ledger";
@@ -136,7 +151,7 @@ function caughtBy(v: VerificationResponse): CaughtBy {
   return "cannot_confirm";
 }
 
-const strings = (b: unknown) => {
+export const strings = (b: unknown) => {
   const o = b as { open_checkout?: unknown; open_payment?: unknown } | null;
   return typeof o?.open_checkout === "string" && typeof o.open_payment === "string" && o.open_checkout.length < 32_768 && o.open_payment.length < 32_768
     ? { openCheckout: o.open_checkout, openPayment: o.open_payment }
@@ -188,6 +203,16 @@ export async function runAp2Demo(d: EngineDeps, tenantId: string, shopperId: str
     settlement = bound.body;
   }
 
+  const caught: CaughtBy = settlement && settlement.state !== "MATCHED" && settlement.state !== "CAPTURED" ? "paypal_order" : caughtBy(verification);
+  const product = { id: facts.product_id, title: facts.title, retailer: facts.offers[0]!.retailer, price_cents: price, image: null, source: facts.source };
+  if (first) await recordDemo(d, first.verification_id, { kind: "scripted", run: "reused_first", product, caught_by: caughtBy(first) });
+  await recordDemo(d, verification.verification_id, {
+    kind: "scripted",
+    run: name,
+    product,
+    ...(name === "cart_swap" ? { sent_to_paypal: { id: "TRL-WHT-10", title: "Ridgeline Trail Runner, Cloud White, US 10" } } : {}),
+    caught_by: caught,
+  });
   return {
     kind: "ok",
     value: {
@@ -196,7 +221,7 @@ export async function runAp2Demo(d: EngineDeps, tenantId: string, shopperId: str
       ...(first ? { first } : {}),
       verification,
       settlement,
-      caught_by: settlement && settlement.state !== "MATCHED" && settlement.state !== "CAPTURED" ? "paypal_order" : caughtBy(verification),
+      caught_by: caught,
     },
   };
 }

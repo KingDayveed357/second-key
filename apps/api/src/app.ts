@@ -48,6 +48,10 @@ import {
   ap2DemoSettlement,
   enrolTrustedSurface,
   runAp2Demo,
+  planShop,
+  searchShop,
+  agentPick,
+  runShop,
   ap2TestVerification,
   importPayee,
   type ProtectionResult,
@@ -410,6 +414,23 @@ export function buildApp(o: AppOptions): FastifyInstance {
     if (!shopperId) return problem(reply, 403, "Payer only");
     return (await ap2DemoSettlement(d, tenantId, shopperId, req.params.id)) ?? problem(reply, 404, "Settlement not found");
   });
+  // Real-product runs on Channel3 (10 Nov): plan and pick use the model; search costs catalog credits.
+  // The web proxy rate-limits all four ("costly"); each needs the visitor's own demo payer.
+  const shopRoute = <T>(path: string, run: (req: FastifyRequest, tenantId: string, shopperId: string) => Promise<{ kind: "ok"; value: T } | { kind: "error"; status: number; title: string; detail?: string }>, code = 200) =>
+    app.post(path, { preHandler: auth("shopper") }, async (req, reply) => {
+      const { tenantId, shopperId } = payer(req);
+      if (!shopperId) return problem(reply, 403, "Payer only");
+      const r = await run(req, tenantId, shopperId);
+      return r.kind === "error" ? problem(reply, r.status, r.title, r.detail) : reply.code(code).send(r.value);
+    });
+  shopRoute("/v1/me/demo/ap2/shop/plan", (req) => planShop(d, req.body));
+  shopRoute("/v1/me/demo/ap2/shop/search", (req) => searchShop(d, req.body));
+  shopRoute("/v1/me/demo/ap2/shop/pick", (req) => agentPick(d, req.body));
+  shopRoute(
+    "/v1/me/demo/ap2/shop/runs",
+    async (req, tenantId, shopperId) => (d.receipts ? runShop(d, tenantId, shopperId, req.body) : { kind: "error" as const, status: 503, title: "Receipt signing is not configured" }),
+    201,
+  );
 
   const inboxSecret = (req: FastifyRequest) => req.headers["x-inbox-secret"];
   app.post("/v1/demo/inboxes", { preHandler: auth("demo", "admin") }, async (req, reply) => reply.code(201).send(await createDemoInbox(d, req.principal!.tenantId)));

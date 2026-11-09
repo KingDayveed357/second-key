@@ -21,11 +21,25 @@ Second Key is a safety layer that wallets, marketplaces and AI-agent platforms b
    - **checkout swaps it:** the mandates conform, but PayPal's stored order holds another shoe, so it's voided before capture;
    - **mandate reused:** the second use of the same mandate is refused by Second Key's ledger.
 
-   Every receipt opens and verifies in the browser against the published key set. Below it, the same protection without AP2 (Rose confirms her request in Second Key), and a box to write your own product page and try to get past the screening.
+   Every receipt opens and verifies in the browser against the published key set.
+
+   **Then try it with real products** (same page, "Now try it with real products"):
+   1. Type what Rose wants, e.g. "a gold smartwatch under $150". Claude Haiku drafts the search, the colour rule and the budget; you see them and can change them before anything is signed.
+   2. Channel3 returns real products from real retailers.
+   3. Rose's device signs an AP2 mandate: the agent's top results as her list, her rules as Second Key's constraint, her budget.
+   4. Let the agent (Haiku) choose, or make it buy any product you click. Second Key re-fetches that product from Channel3 by id, signs the facts it relies on, verifies, and settles on the PayPal sandbox.
+
+   Each way an agent goes wrong has its own outcome:
+   - **a listed product that isn't gold:** AP2 says yes, Second Key's facts say no;
+   - **a listing that doesn't state its colour:** Second Key can't confirm it, so it isn't paid;
+   - **a product off the list:** AP2's own constraints refuse it;
+   - **the checkout sends PayPal a different real product:** voided at PayPal before capture;
+   - **the agent hides Rose's list** by withholding its disclosures: the signature still verifies, but the list matches nothing, so it's refused. A verifier that reads an empty list as "anything" would accept this purchase.
 3. **[Protection Desk](https://witness-web.onrender.com/desk)** (AG Grid and AG Studio, no sign-in).
    - **Incidents:** every intervention in an AG Grid, with what the AI observed, which rule decided it, who decided it and what PayPal says as separate columns, and the audit chain verified per incident.
-   - **Insights:** an AG Studio dashboard over the same rows, in Second Key's theme, with a custom proof-chain widget (AI → rule → person → PayPal, audit chain verified live).
-   - **Ask the Second Key agent:** a custom lead and analyst built on the Studio Agent Framework, working with Studio's built-in agents on Claude Haiku. Try "Who decided the paused payments?". It is read-only, with its own small spend cap.
+   - **Agent mandates · AP2:** every agent purchase under an AP2 mandate, one AG Grid row each, with the layers as columns: signatures and AP2 constraints (what any AP2 verifier checks), Second Key's facts and ledger, then PayPal's order and the money. A headline counts the purchases **AP2 alone would have said yes to**. Open a row for the reasons, the PayPal order and capture IDs, and receipts you can verify.
+   - **Insights:** an AG Studio dashboard in Second Key's own theme (typography, palette, cards, scrollbars), reading top to bottom: headline numbers, then **Where agents were stopped**, a custom widget that shows every AP2 agent purchase by the layer that decided it and brackets what AP2 alone would have allowed. It reads Studio's own data engine, so filters apply, and clicking a layer cross-filters the whole dashboard. Then who decided paused payments, the pressure patterns, the custom proof-chain widget (AI → rule → person → PayPal, audit chain verified live) and both tables. On tablets and phones the layout stacks and the AI panel starts collapsed.
+   - **Ask the Second Key agent:** a custom lead and analyst built on the Studio Agent Framework, working with Studio's built-in agents on Claude Haiku. Try "Who decided the paused payments?" or "What did AP2 alone miss?". It is read-only, with its own small spend cap.
 4. **[Developers](https://witness-web.onrender.com/developers).**
    - **Run a test verification**, with no account and no key. Your browser signs sample AP2 mandates with a throwaway key, Second Key's real verifier checks them, and your browser verifies the signed receipts against `/.well-known/jwks.json`. Nothing is stored and PayPal isn't called.
    - **Constraint templates as JSON:** one exact item, a monthly purchase with a budget, and a two-person rule.
@@ -120,7 +134,7 @@ pnpm --filter @witness/web build && pnpm --filter @witness/web start   # http://
 - **AG Grid:** the Protection Desk's incident grid (AG Grid Community) and its Insights (AG Studio: custom widget, theming, and the Studio Agent Framework with Haiku swapped in).
 - **Anthropic Claude Haiku:** evidence analysis, prompt-injection and listing checks, the intent compiler, and the Studio agent.
 - **AP2 (Agent Payments Protocol v0.2):** mandates as SD-JWT (RFC 9901) delegation chains, verified in TypeScript with `jose` and checked for interop against Google's reference SDK.
-- **Channel3:** independent product facts for agent purchases. **Render:** hosting.
+- **Channel3:** product search for the agent (`POST /v1/search`), and the independent product facts Second Key re-fetches by id (`GET /v1/products/{id}`) and signs before deciding. Colour comes from the listing's own variant, else its title, else a description that states one colour, and the facts record which. **Render:** hosting.
 - TypeScript, Fastify, Next.js, Postgres, pg-boss, Drizzle, Zod, Vitest.
 
 The internal package names (`@witness/*`) date from the project's first phase, an agent spend-control prototype that is now the agent side of Second Key.

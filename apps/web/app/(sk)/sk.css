@@ -302,3 +302,55 @@
 @media (prefers-reduced-motion: reduce) {
   .sk *, .sk *::before, .sk *::after { animation: none !important; transition: none !important; }
 }
+
+/* AP2 shop: real products from Channel3 (agent page, #ap2) */
+.sk-input { min-height: 44px; width: 100%; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-strong); font: inherit; background: var(--surface); color: var(--ink); }
+.sk-input:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.sk-shop-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.sk-shop-card { position: relative; display: flex; flex-direction: column; gap: var(--s3); justify-content: space-between; padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); min-width: 0; }
+.sk-shop-card.listed { border-color: color-mix(in srgb, var(--moss) 55%, var(--line)); }
+.sk-shop-card.picked { box-shadow: 0 0 0 2px var(--brand); }
+.sk-shop-img { height: 132px; display: grid; place-items: center; background: #fff; border-radius: calc(var(--r-md) - 4px); overflow: hidden; }
+.sk-shop-img img { max-width: 100%; max-height: 132px; object-fit: contain; }
+.sk-shop-tick { position: absolute; top: 8px; left: 8px; z-index: 1; display: inline-flex; gap: 4px; align-items: center; padding: 2px 8px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 88%, transparent); border: 1px solid var(--line); }
+@media (max-width: 480px) { .sk-shop-grid { grid-template-columns: 1fr 1fr; } .sk-shop-img { height: 100px; } }
+.sk-stats { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+/* Scrollbars in the app's own palette: thin, quiet thumb, no track. Covers AG Grid and AG Studio panes. */
+.sk, .sk *, body:has(.sk) .ag-popup * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+html:has(.sk) { scrollbar-color: #cfc9bb transparent; }
+@media (prefers-color-scheme: dark) { html:has(.sk) { scrollbar-color: #3b413d transparent; } }
+.sk ::-webkit-scrollbar { width: 10px; height: 10px; }
+.sk ::-webkit-scrollbar-track { background: transparent; }
+.sk ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+.sk ::-webkit-scrollbar-thumb:hover { background: var(--ink-3); background-clip: padding-box; border: 3px solid transparent; }
+.sk ::-webkit-scrollbar-corner { background: transparent; }
+
+/* Desk tabs and AP2 view on small screens */
+.sk-tab-extra { color: var(--ink-3); font-weight: 500; }
+@media (max-width: 640px) {
+  .sk-tab-extra { display: none; }
+  .sk-stats { grid-template-columns: 1fr 1fr; gap: var(--s2); }
+  .sk-stats > .sk-card { padding: var(--s3); }
+  .sk-stats > .sk-card .note { display: none; }
+}
+.sk-mcards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+.sk-mcard { display: grid; grid-template-columns: 44px 1fr; gap: var(--s3); align-items: start; padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); text-align: left; font: inherit; color: inherit; width: 100%; cursor: pointer; }
+.sk-mcard[aria-pressed="true"] { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
+.sk-mcard img, .sk-mcard .ph { width: 44px; height: 44px; object-fit: contain; background: #fff; border-radius: 10px; }
+.sk-dots { display: flex; gap: 4px; align-items: center; }
+.sk-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); display: inline-block; }
+.sk-dots i.pass { background: var(--moss); } .sk-dots i.fail { background: var(--brick); } .sk-dots i.open { background: var(--brass); } .sk-dots i.wait { background: var(--ink-3); }
+
+/* Insights (AG Studio): use the full window width, not the reading column */
+.sk-insights-frame { width: min(100vw - 32px, 1680px); margin-left: 50%; transform: translateX(-50%); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; background: var(--paper); box-shadow: 0 1px 0 var(--line), 0 30px 60px -40px rgba(22, 24, 29, 0.35); }
+@media (max-width: 640px) { .sk-insights-frame { width: calc(100vw - 16px); border-radius: 14px; } }
+
+/* Desk incident queue: the grid fills the box and the totals line sits under it, never on top of the detail. */
+.sk-desk .queue { display: flex; flex-direction: column; gap: 6px; }
+.sk-desk .queue > :first-child { flex: 1 1 0; min-height: 0; height: auto !important; }
+.sk-desk .queue > p { flex: none; margin: 0 !important; }
+/* The inline evidence row: four steps, two by two on narrow screens. */
+.sk-peek { padding: 10px 16px 12px 56px; }
+.sk-peek-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .sk-peek { padding: 10px 12px 12px 16px; } .sk-peek-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

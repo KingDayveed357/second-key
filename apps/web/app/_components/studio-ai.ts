@@ -114,19 +114,21 @@ const SECOND_KEY_CONTEXT = `Second Key pauses payments made under pressure: a pa
 - policy: what the deterministic RULES decided (Review required, Refused by rule, Order mismatch: cancelled, Allowed).
 - review: what the PERSON decided (Not needed, Awaiting, Approved, Denied, Cancelled by payer, Auto-released, Intent revoked); decided_by: who.
 - authorization and capture: what PAYPAL recorded. resolution: Needs attention, In progress or Resolved.
-Keep these four facts separate: an AI observation is not a finding, a rule is not a person's decision, and a decision is not money moving until PayPal says so. "Stopped" means Refused by rule plus Order mismatch: cancelled plus Denied/Cancelled/Auto-released amounts. This is synthetic demo data on the PayPal sandbox. You only read it; you cannot approve, cancel or change anything.`;
+Keep these four facts separate: an AI observation is not a finding, a rule is not a person's decision, and a decision is not money moving until PayPal says so. "Stopped" means Refused by rule plus Order mismatch: cancelled plus Denied/Cancelled/Auto-released amounts. Data source "mandates" has one row per AI agent purchase verified under an AP2 mandate (Google's Agent Payments Protocol): product (catalog Channel3 = a real product, Scripted = a fixed demo product), retailer, amount, run, then the layers in order: ap2_layer (AP2's own constraints: listed item, amount, merchant, payee), facts_layer (Second Key's rules, such as colour, checked on product facts it fetched and signed), paypal_layer (PayPal's stored order must match the verified checkout), and stopped_by (the layer that stopped it, or "Nothing: bought"). ap2_alone = 1 when AP2's own checks passed but Second Key or PayPal's order stopped the purchase. captured = USD captured on PayPal.
+This is synthetic demo data on the PayPal sandbox. You only read it; you cannot approve, cancel or change anything.`;
 
 export const secondKeyHarness = makeHarness({
   prefix: "secondkey",
   name: "Second Key",
   context: SECOND_KEY_CONTEXT,
   analystDescription:
-    "Answers questions about Second Key incidents: what the AI observed, what the rules decided, who decided paused payments, what PayPal recorded, and how much money was stopped or is still waiting. Use for any question about incidents, decisions, patterns or amounts.",
+    "Answers questions about Second Key incidents: what the AI observed, what the rules decided, who decided paused payments, what PayPal recorded, and how much money was stopped or is still waiting. Use for any question about incidents, decisions, patterns or amounts, and about AI agent purchases under AP2 mandates (data source \"mandates\").",
   analystFocus: "Answer with numbers from queries, in two to four short sentences. Say which of the four facts (AI observation, rule, person, PayPal) your answer is about.",
   starters: [
     { label: "Who decided the paused payments?", prompt: "Of the payments that were held for review, how many did each person or outcome decide? Show it as a chart." },
     { label: "Which pressure patterns appear most?", prompt: "Which pressure patterns did the AI observe most often, and in how much money?" },
     { label: "Money stopped, by workflow", prompt: "How much money did Second Key stop for transfers versus agent purchases?" },
     { label: "What is waiting for a person?", prompt: "Which payments are still waiting for a person to decide?" },
+    { label: "What did AP2 alone miss?", prompt: "Of the agent purchases under AP2 mandates, how many would AP2 alone have allowed, and which layer stopped each? Show it as a chart." },
   ],
 });

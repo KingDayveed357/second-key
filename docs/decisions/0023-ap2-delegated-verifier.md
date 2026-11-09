@@ -56,6 +56,20 @@ Second Key implements AP2 as a **delegated verifier** for the merchant and proce
 - **"AP2-compatible" means:** verifies chains built by the reference SDK, and builds chains it accepts, for the shapes tested. It is not a certification.
 - **The demo's parties are synthetic.** In the agent demo, Rose's browser key is real WebCrypto and the verifier, ledger, settlement and PayPal calls are real. The shopping agent and the merchant are scripted server-side parties, and the page labels them so.
 
+## Addendum (10 Nov): real products, and AP2 in the Desk
+
+- **Real products from Channel3.** The agent page's second panel runs the same verifier, ledger, settlement and executor on products from Channel3's search (`ap2-shop.ts`).
+  - **Planning:** Haiku drafts the search, the attribute rules and the budget from the shopper's words. The shopper sees and edits them, and only what the device signs is enforced. AI drafts; it never decides.
+  - **Where facts come from:** what the agent saw in search results is never trusted. Before deciding, Second Key re-fetches the product by id (`GET /v1/products/{id}`) and signs those facts.
+  - **Colour:** taken from Channel3's variant, else from a title that names exactly one colour, else from a description that states one ("… in Gold"). The facts record which (`color_source`). When the colour is ambiguous it is left out, so the rule is unresolved and the purchase isn't paid.
+  - **The agent's pick:** Haiku chooses from the results, told which products the shopper approved, and can still get it wrong. The shopper can also force any pick.
+- **Runs:** buy (right or wrong product), swap (PayPal receives a different real product) and hide_list (the agent withholds the shortlist disclosures).
+  - **hide_list** demonstrates that this verifier doesn't share the reference SDK divergence above: a list with nothing revealed matches nothing.
+- **AP2 in the Protection Desk.** Verifications now record who asked (`principal`) and, for demo runs, what the run was (`demo`; migration 0011).
+  - **Where it shows:** `GET /v1/demo/ap2/incidents` (the current demo session) and `GET /v1/console/ap2` (operators) feed an AG Grid view with one column per layer (signatures, AP2 constraints, Second Key's facts, ledger, PayPal's order).
+  - **Headline count:** purchases where signatures and AP2's own constraints passed but Second Key or PayPal's order stopped them, the gap this ADR is about.
+  - **Insights:** the same rows are a second AG Studio data source, so the Studio agent can answer questions about them.
+
 ## Evidence
 
 - **Tests:** 175 AP2 tests, 137 unit and 38 against Postgres. All 39 deliberate breaks of the verifier, constraint, extension, ledger, receipt, lock and settlement rules were caught.
