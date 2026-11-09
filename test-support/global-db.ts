@@ -3,6 +3,7 @@
 
 import EmbeddedPostgres from "embedded-postgres";
 import { rmSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import type { TestProject } from "vitest/node";
 
@@ -31,6 +32,20 @@ export default async function setup(project: TestProject) {
   await pg.start();
   project.provide("pgAdminUrl", `postgres://witness:witness-test-only@127.0.0.1:${PORT}/postgres`);
   return async () => {
-    await pg.stop();
+    // embedded-postgres registers async-exit-hook, whose beforeExit handler calls process.exit(0) and
+    // so overwrote vitest's failure exit code: a failing db test used to exit 0. Unhook it before
+    // stopping, so a stop that hangs on a leaked connection can't bring the override back. Its exit
+    // handler goes too: it would call the async shutdown without a callback, and we stop the cluster here.
+    const require = createRequire(createRequire(import.meta.url).resolve("embedded-postgres"));
+    const hook = require("async-exit-hook") as { unhookEvent(e: string): void };
+    hook.unhookEvent("beforeExit");
+    hook.unhookEvent("exit");
+    // On Windows, deleting the stopped cluster's directory sometimes fails with EBUSY. That is cleanup,
+    // not a test result (setup wipes the directory anyway), so it must not fail the run.
+    try {
+      await pg.stop();
+    } catch (e) {
+      console.warn(`embedded Postgres cleanup: ${(e as Error).message}`);
+    }
   };
 }

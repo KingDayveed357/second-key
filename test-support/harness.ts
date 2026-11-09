@@ -69,7 +69,7 @@ export async function createHarness(over: Partial<ExecutorDeps> = {}): Promise<H
       const results: string[] = [];
       for (let round = 0; round < 25; round++) {
         let any = false;
-        for (const q of [QUEUES.capture, QUEUES.void, QUEUES.holdTimeout, QUEUES.webhook, QUEUES.payout, QUEUES.notify] as QueueName[]) {
+        for (const q of [QUEUES.capture, QUEUES.void, QUEUES.holdTimeout, QUEUES.webhook, QUEUES.payout, QUEUES.notify, QUEUES.ap2Capture, QUEUES.ap2Void, QUEUES.ap2Reconcile] as QueueName[]) {
           const jobs = await boss.fetch<object>(q, { batchSize: 10 });
           for (const j of jobs) {
             any = true;

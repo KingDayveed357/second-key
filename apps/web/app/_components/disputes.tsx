@@ -32,7 +32,7 @@ export function Disputes() {
   return (
     <div className="stack">
       <p className="muted small">
-        A buyer opens a dispute in PayPal. Attach it here by its PayPal dispute ID: Witness checks it is against one of its captures, drafts evidence from the record,
+        A buyer opens a dispute in PayPal. Attach it here by its PayPal dispute ID: Second Key checks it is against one of its captures, drafts evidence from the record,
         and submits it only after you approve the exact text.
       </p>
       <form className="card row" onSubmit={attach}>

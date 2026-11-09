@@ -2,6 +2,7 @@
 
 import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef, type ColGroupDef, type GridApi, type RowClickedEvent } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, errText } from "../../../lib/client";
@@ -263,6 +264,31 @@ export function Desk({ mode }: { mode: Mode }) {
   );
   const fullWidthRenderer = useCallback((p: { data: DetailRow }) => <EvidencePeek row={p.data.parent} mode={mode} />, [mode]);
 
+  // Narrow screens keep the columns that answer "what, how much, and where does it stand"; the rest stay
+  // one tap away in the incident detail. Column visibility follows the viewport, not a fixed breakpoint list.
+  useEffect(() => {
+    if (!grid) return;
+    const narrow = window.matchMedia("(max-width: 760px)");
+    const mid = window.matchMedia("(max-width: 1100px)");
+    const apply = () => {
+      grid.setColumnsVisible(["workflow", "evidenceCount", "payout"], !mid.matches);
+      grid.setColumnsVisible(["pattern", "authorization", "capture", "detectedAt"], !narrow.matches);
+      grid.setColumnsPinned(["resolution"], narrow.matches ? null : "right");
+    };
+    apply();
+    narrow.addEventListener("change", apply);
+    mid.addEventListener("change", apply);
+    return () => {
+      narrow.removeEventListener("change", apply);
+      mid.removeEventListener("change", apply);
+    };
+  }, [grid]);
+  // Below the two-column layout the detail opens under the grid: bring it into view on selection.
+  const detailRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (selected && window.matchMedia("(max-width: 1100px)").matches) detailRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }, [selected]);
+
   const totals = totalsByCurrency(visible);
   const pinnedBottom = useMemo(() => (visible.length ? [{ id: "__total", counterparty: `Visible: ${visible.length} incident${visible.length === 1 ? "" : "s"}`, amountCents: null, currency: null } as unknown as DeskRow] : []), [visible.length]);
 
@@ -300,7 +326,7 @@ export function Desk({ mode }: { mode: Mode }) {
         </div>
       </div>
 
-      <div className="row between" style={{ alignItems: "flex-end" }}>
+      <div className="sk-desk-bar" style={{ alignItems: "flex-end" }}>
         <div className="sk-filters" role="group" aria-label="Saved views">
           {VIEWS.map((v) => (
             <button key={v.key} className="sk-chip" aria-pressed={view === v.key} onClick={() => (setView(v.key), setLensValue(null))}>
@@ -314,9 +340,11 @@ export function Desk({ mode }: { mode: Mode }) {
           onChange={(e) => setQuick(e.target.value)}
           placeholder="Quick filter: payee, pattern, state…"
           aria-label="Quick filter"
-          style={{ minHeight: 36, minWidth: 260, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line-strong)", font: "inherit", fontSize: "var(--text-sm)", background: "var(--surface)", color: "var(--ink)" }}
+          style={{ minHeight: 40, minWidth: 260, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line-strong)", font: "inherit", fontSize: "var(--text-sm)", background: "var(--surface)", color: "var(--ink)" }}
         />
       </div>
+
+      {mode === "public" && incidents && rows.length === 0 && <EmptyDesk />}
 
       <section className="sk-card" style={{ padding: 12 }} aria-label="Group by">
         <div className="row between" style={{ marginBottom: 8 }}>
@@ -384,7 +412,7 @@ export function Desk({ mode }: { mode: Mode }) {
           </p>
         </div>
         {selected ? (
-          <div className="detail">
+          <div className="detail" ref={detailRef}>
             <div className="row between" style={{ marginBottom: 8 }}>
               <span className="xs muted">Incident detail</span>
               <Button variant="quiet" size="sm" onClick={() => (setSelected(null), router.replace("/desk", { scroll: false }))}>
@@ -396,6 +424,37 @@ export function Desk({ mode }: { mode: Mode }) {
         ) : null}
       </div>
     </div>
+  );
+}
+
+/** The public Desk shows the visitor's own demo session, so a first visit is empty: say how to fill it. */
+function EmptyDesk() {
+  return (
+    <section className="sk-empty" aria-labelledby="desk-empty">
+      <div className="stack-sm">
+        <span className="sk-section-title">Your demo session has no incidents yet</span>
+        <h2 id="desk-empty">Run a scenario, then come back here</h2>
+        <p className="small soft">The public Desk shows only the payments made in your own browser session, so nothing here is invented. Each scenario creates a real incident on the PayPal sandbox within a few seconds.</p>
+        <div className="row" style={{ marginTop: 8 }}>
+          <Link href="/agent" className="sk-btn primary sm">
+            Run the agent demo
+          </Link>
+          <Link href="/pay" className="sk-btn secondary sm">
+            Run the payer demo
+          </Link>
+        </div>
+      </div>
+      <div className="stack-sm">
+        <span className="sk-section-title">Then, for each incident, the Desk shows</span>
+        <ol>
+          <li>What the AI observed, with the exact quoted words</li>
+          <li>What the deterministic rule decided, and why</li>
+          <li>Who decided, if a person had to</li>
+          <li>What PayPal recorded: authorization, capture, payout, re-read live</li>
+          <li>The hash-chained audit trail, verified live</li>
+        </ol>
+      </div>
+    </section>
   );
 }
 

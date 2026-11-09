@@ -56,6 +56,15 @@ export const RULES: Rule[] = [
   { method: "POST", pattern: new RegExp(`^/v1/me/demo/transfers/${ID}$`), role: "payer", costly: true },
   { method: "GET", pattern: new RegExp(`^/v1/holds/${ID}$`), role: "payer" },
 
+  // AP2 agent demo: Rose's browser signs her open mandates with its own key; the visitor's payer key runs them.
+  { method: "GET", pattern: /^\/v1\/demo\/ap2\/setup$/, role: "public" },
+  // "Run a test verification" (/developers): no account, no key; stores nothing; can run the AI listing check.
+  { method: "POST", pattern: /^\/v1\/demo\/ap2\/test-verification$/, role: "public", costly: true },
+  { method: "POST", pattern: /^\/v1\/me\/demo\/ap2\/surface$/, role: "payer" },
+  { method: "POST", pattern: new RegExp(`^/v1/me/demo/ap2/runs/${ID}$`), role: "payer", costly: true },
+  { method: "GET", pattern: new RegExp(`^/v1/me/demo/ap2/settlements/${ID}$`), role: "payer" },
+  { method: "GET", pattern: /^\/\.well-known\/jwks\.json$/, role: "public" },
+
   // The guardian's demo channel: readable only with the inbox secret held by the guardian's window.
   { method: "POST", pattern: /^\/v1\/demo\/inboxes$/, role: "demo", costly: true },
   { method: "GET", pattern: /^\/v1\/demo\/inboxes\/SK-[A-Z0-9]{4}-[A-Z0-9]{4}\/messages$/, role: "inbox" },

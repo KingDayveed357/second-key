@@ -1,13 +1,13 @@
 "use client";
 
-// The ops console on AG Studio (ADR-0009): a themed, two-page report over Witness's ledger, with a
+// The ops console on AG Studio (ADR-0009): a themed, two-page report over Second Key's ledger, with a
 // custom "evidence chain" widget that verifies a purchase's hash-chained audit trail live.
 import { useEffect, useMemo, useState } from "react";
 import { AgStudio, createWidgets } from "ag-studio-react";
 import { AgStudioAiModule, AgStudioLicenseManager, AgStudioModuleRegistry, studioTheme, type AgReportState, type AgWidgetParams } from "ag-studio";
 import { witnessHarness } from "./studio-ai";
 
-// Studio Agent Framework: a Witness lead and analyst (custom agents) working with Studio's built-in
+// Studio Agent Framework: a Second Key lead and analyst (custom agents) working with Studio's built-in
 // agents, all on Haiku via this site's server route (studio-ai.ts, lib/server/studio-ai.ts).
 AgStudioModuleRegistry.registerModules([AgStudioAiModule]);
 const ai = witnessHarness;
@@ -31,7 +31,7 @@ const FIELDS = {
   blocked: [text("reason", "Reason"), int("purchases", "Purchases"), usd("value", "Value blocked")],
 };
 
-// Witness theme on AG Studio's theming API, following the page's light/dark mode.
+// Second Key theme on AG Studio's theming API, following the page's light/dark mode.
 const THEMES = {
   light: studioTheme.withParams({ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", backgroundColor: "#ffffff", textColor: "#14171c", borderColor: "#dde1e7", accentColor: "#0b57d0", gridBrowserColorScheme: "light", gridAccentColor: "#0b57d0", gridCellTextColor: "#14171c", gridHeaderBackgroundColor: "#f0f2f5" } as any),
   dark: studioTheme.withParams({ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", backgroundColor: "#171b21", textColor: "#e8eaed", borderColor: "#2c333d", accentColor: "#8ab4f8", gridBrowserColorScheme: "dark", gridAccentColor: "#8ab4f8", gridCellTextColor: "#e8eaed", gridHeaderTextColor: "#c3cfdd", gridHeaderBackgroundColor: "#1f242c", gridDataBackgroundColor: "#171b21", gridOddRowBackgroundColor: "#1b2027", gridIconColor: "#9aa3ae" } as any),
@@ -190,7 +190,7 @@ function EvidenceChainWidget(props: AgWidgetParams) {
             )}
           </div>
           <div>
-            <div className="muted small" style={{ marginBottom: 4 }}>Checks, in the order Witness ran them</div>
+            <div className="muted small" style={{ marginBottom: 4 }}>Checks, in the order Second Key ran them</div>
             <ul className="checks">
               {view.checks.map((c: any, i: number) => (
                 <li key={i}>
@@ -254,7 +254,7 @@ export function ConsoleStudio({ licenseKey }: { licenseKey: string }) {
     [data],
   );
   const widgets = useMemo(
-    () => (config: any) => createWidgets({ additionalTypes: [evidenceChainDefinition], menu: [...(config.menu ?? []), { label: "Witness", widgetIds: ["evidence-chain"] }] } as any),
+    () => (config: any) => createWidgets({ additionalTypes: [evidenceChainDefinition], menu: [...(config.menu ?? []), { label: "Second Key", widgetIds: ["evidence-chain"] }] } as any),
     [],
   );
 

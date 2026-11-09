@@ -1,4 +1,4 @@
-// Witness web: judge page, shopper page, phone HOLD approval and the ops console.
+// Second Key web: the public demo surfaces, the Protection Desk and the operator console.
 // Role API keys stay server-side (lib/server); the browser only ever talks to /api/* on this host.
 // Type-checking runs from the repo (`pnpm typecheck`, tsconfig in this folder) because the repo uses
 // TypeScript 7, so Next's own build-time check is skipped rather than run against a different compiler.
@@ -6,9 +6,11 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // A second local dev server (e.g. a UI preview beside a running rehearsal) needs its own build dir.
+  distDir: process.env.SK_NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   typescript: { ignoreBuildErrors: true },
-  // Witness was folded into Second Key: its judge page is the developer conformance suite now.
+  // The old Witness judge page is the developer conformance suite now; keep its URL working.
   async redirects() {
     return [
       { source: "/witness", destination: "/developers", permanent: false },

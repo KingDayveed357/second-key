@@ -5,7 +5,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { newId } from "@witness/core";
 import type pg from "pg";
 
-export const SCOPES = ["agent:purchase", "shopper", "ops", "demo", "admin"] as const;
+export const SCOPES = ["agent:purchase", "shopper", "ops", "demo", "admin", "ap2:verify"] as const;
 export type Scope = (typeof SCOPES)[number];
 
 export const hashKey = (key: string) => createHash("sha256").update(key, "utf8").digest("hex");

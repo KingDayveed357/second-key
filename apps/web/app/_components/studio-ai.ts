@@ -51,16 +51,16 @@ export const PROMPT_STARTERS = [
 ];
 
 // ---- custom agents on top of Studio's built-in ones (Studio Agent Framework) ------------------
-// A Witness lead fronts the chat. It delegates questions about payment decisions to a Witness
-// analyst (a custom agent that queries the ledger and knows what Witness's checks mean), and
+// A Second Key lead fronts the chat. It delegates questions about payment decisions to a Second Key
+// analyst (a custom agent that queries the ledger and knows what Second Key's checks mean), and
 // delegates building or editing widgets to Studio's built-in page, widget, data and planning agents.
 // Every agent runs on Haiku through the same server route.
 
-const WITNESS_CONTEXT = `Witness screens AI shopping agents' carts before PayPal moves money. Data sources:
+const WITNESS_CONTEXT = `Second Key screens AI shopping agents' carts before PayPal moves money. Data sources:
 - ledger: one row per purchase. state is CAPTURED (paid), REJECTED (blocked before PayPal), VOIDED (authorization released), HELD (waiting for the shopper) or in progress. amount is USD. reason is the first check that did not pass.
-- holds: purchases waiting for the shopper, with the time Witness auto-voids them.
+- holds: purchases waiting for the shopper, with the time Second Key auto-voids them.
 - blocked: value and count of rejected or voided purchases by reason.
-"Blocked value" means REJECTED plus VOIDED amounts. Witness never captures without a consumed single-use approval. You only read this data; you cannot approve, capture, void or change anything.`;
+"Blocked value" means REJECTED plus VOIDED amounts. Second Key never captures without a consumed single-use approval. You only read this data; you cannot approve, capture, void or change anything.`;
 
 
 /**
@@ -97,10 +97,10 @@ function makeHarness(o: { prefix: string; name: string; context: string; analyst
 
 export const witnessHarness = makeHarness({
   prefix: "witness",
-  name: "Witness",
+  name: "Second Key (operator)",
   context: WITNESS_CONTEXT,
   analystDescription:
-    "Answers questions about Witness payment decisions from the ledger: why purchases were rejected, held or voided, how much value each check blocked, and what is waiting for shoppers. Use for any question about decisions, reasons or amounts.",
+    "Answers questions about Second Key payment decisions from the ledger: why purchases were rejected, held or voided, how much value each check blocked, and what is waiting for shoppers. Use for any question about decisions, reasons or amounts.",
   analystFocus: "Answer with numbers from queries, in two to four short sentences. Name the check (for example colour, size, market price, prompt injection, PayPal order match) in plain words.",
   starters: PROMPT_STARTERS,
 });

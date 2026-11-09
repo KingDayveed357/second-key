@@ -42,6 +42,10 @@ export const ApiConfig = Base.extend({
   WITNESS_HOLD_LINK_TTL_MINUTES: z.coerce.number().int().min(5).max(24 * 60).default(30),
   /** Second Key demo: PayPal sandbox account that receives payouts for demo transfers. Unset → no payouts. */
   SECONDKEY_DEMO_RECIPIENT_EMAIL: z.email().optional(),
+  /** AP2 receipt signing key: a private P-256 JWK (JSON). Unset: a per-process key, so receipts stop verifying after a restart. */
+  SECONDKEY_RECEIPT_JWK: z.string().optional(),
+  /** `iss` of every receipt: the verifier's public identity. */
+  SECONDKEY_VERIFIER_ISSUER: z.url().default("https://witness-api.onrender.com"),
 });
 export type ApiConfig = z.infer<typeof ApiConfig>;
 

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Demo, Live } from "../_ui/ui";
+import { ConstraintTemplates, TestVerification } from "../_ap2/kit";
 import { Conformance, Counters } from "./conformance";
 
 export const metadata = { title: "Developers · Second Key" };
 
-const REPO = "https://github.com/KingDayveed357/witness/blob/main";
+const REPO = "https://github.com/KingDayveed357/second-key/blob/main";
 
 // For integrators and engineers: how Second Key sits in a payment flow, the conformance suite that
 // exercises it on the PayPal sandbox, and where the contracts and decisions are written down.
@@ -48,6 +49,17 @@ export default function Page() {
           </li>
         </ol>
       </section>
+
+      <div className="stack" aria-label="AP2 tools">
+        <div className="stack-sm" style={{ maxWidth: 760 }}>
+          <span className="sk-section-title">Agents on AP2</span>
+          <p className="small soft">
+            For agent platforms that speak AP2: verify a signed mandate without an account or a key, then start from a constraint template. <a href="#test-verification">Run a test verification</a> · <a href="#templates">Constraint templates</a>
+          </p>
+        </div>
+        <TestVerification />
+        <ConstraintTemplates />
+      </div>
 
       <section className="stack" aria-labelledby="suite">
         <div className="stack-sm">

@@ -16,6 +16,10 @@ export const QUEUES = {
   payoutCheck: "witness-payout-check",
   /** Guardian notification outbox (ADR-0020): one job per notifications row. */
   notify: "witness-notify",
+  /** AP2 settlements (0009): capture, void and reconcile one ap2_settlements row. */
+  ap2Capture: "secondkey-ap2-capture",
+  ap2Void: "secondkey-ap2-void",
+  ap2Reconcile: "secondkey-ap2-reconcile",
 } as const;
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
 
@@ -29,6 +33,9 @@ export interface WebhookJob {
 }
 export interface NotifyJob {
   notificationId: string;
+}
+export interface SettlementJob {
+  settlementId: string;
 }
 
 export function createBoss(connectionString: string, role: "api" | "worker"): PgBoss {
@@ -46,7 +53,7 @@ export async function enqueue(
   boss: PgBoss,
   tx: Tx,
   queue: QueueName,
-  data: PurchaseJob | WebhookJob | NotifyJob,
+  data: PurchaseJob | WebhookJob | NotifyJob | SettlementJob,
   opts: { startAfter?: Date; singletonKey?: string } = {},
 ): Promise<string | null> {
   return boss.send(queue, data as object, { ...opts, db: { executeSql: tx.executeSql } });

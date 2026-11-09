@@ -44,6 +44,11 @@ import {
   acceptInvite,
   createDemoPayer,
   demoKnownPayees,
+  ap2DemoSetup,
+  ap2DemoSettlement,
+  enrolTrustedSurface,
+  runAp2Demo,
+  ap2TestVerification,
   importPayee,
   type ProtectionResult,
   type HoldActor,
@@ -56,6 +61,7 @@ import { fixtureFacts } from "@witness/catalog";
 import { registerConsole, type ConsoleOptions } from "./console.ts";
 import { registerAnalyze } from "./analyze.ts";
 import { registerDisputes } from "./disputes.ts";
+import { registerVerifier } from "./verifier.ts";
 
 export interface AppOptions {
   deps: EngineDeps;
@@ -379,6 +385,32 @@ export function buildApp(o: AppOptions): FastifyInstance {
     if (r.result.kind === "error") return problem(reply, r.result.status, r.result.title, r.result.detail);
     return reply.code(202).send({ scenario: req.params.name, intent_id: r.intentId, purchase: purchaseView(r.result.purchase) });
   });
+  // AP2 agent demo (8 Nov): Rose's browser signs her open mandates; the demo agent and merchant are server-side.
+  app.get("/v1/demo/ap2/setup", async () => ap2DemoSetup());
+  // No account, no key: the web proxy rate-limits it (it can run the AI listing check).
+  app.post("/v1/demo/ap2/test-verification", async (req, reply) => {
+    const r = await ap2TestVerification(d, req.body);
+    return r.kind === "error" ? problem(reply, r.status, r.title, r.detail) : r.value;
+  });
+  app.post("/v1/me/demo/ap2/surface", { preHandler: auth("shopper") }, async (req, reply) => {
+    const { tenantId, shopperId } = payer(req);
+    if (!shopperId) return problem(reply, 403, "Payer only");
+    const r = await enrolTrustedSurface(d, tenantId, shopperId, req.body);
+    return r.kind === "error" ? problem(reply, r.status, r.title, r.detail) : reply.code(201).send({ thumbprint: r.thumbprint });
+  });
+  app.post<{ Params: { name: string } }>("/v1/me/demo/ap2/runs/:name", { preHandler: auth("shopper") }, async (req, reply) => {
+    const { tenantId, shopperId } = payer(req);
+    if (!shopperId) return problem(reply, 403, "Payer only");
+    if (!d.receipts) return problem(reply, 503, "Receipt signing is not configured");
+    const r = await runAp2Demo(d, tenantId, shopperId, req.params.name, req.body);
+    return r.kind === "error" ? problem(reply, r.status, r.title, r.detail) : reply.code(201).send(r.value);
+  });
+  app.get<{ Params: { id: string } }>("/v1/me/demo/ap2/settlements/:id", { preHandler: auth("shopper") }, async (req, reply) => {
+    const { tenantId, shopperId } = payer(req);
+    if (!shopperId) return problem(reply, 403, "Payer only");
+    return (await ap2DemoSettlement(d, tenantId, shopperId, req.params.id)) ?? problem(reply, 404, "Settlement not found");
+  });
+
   const inboxSecret = (req: FastifyRequest) => req.headers["x-inbox-secret"];
   app.post("/v1/demo/inboxes", { preHandler: auth("demo", "admin") }, async (req, reply) => reply.code(201).send(await createDemoInbox(d, req.principal!.tenantId)));
   app.get<{ Params: { address: string } }>("/v1/demo/inboxes/:address/messages", { preHandler: auth("demo", "admin") }, async (req, reply) =>
@@ -518,6 +550,7 @@ export function buildApp(o: AppOptions): FastifyInstance {
   registerConsole(app, d, auth, problem, o.console);
   registerAnalyze(app, auth, problem, { demoAi: o.console?.demoAi, demoAnalysesPerMinute: o.console?.demoAnalysesPerMinute });
   registerDisputes(app, d, auth, problem);
+  registerVerifier(app, d, auth, problem);
 
   // ---- public verification ----------------------------------------------------------------
   app.get<{ Querystring: { epoch?: string } }>("/v1/verify/chain", async (req) => {

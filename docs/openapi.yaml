@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
-  title: Witness API
-  version: 0.2.0
+  title: Second Key API (formerly Witness)
+  version: 0.3.0
   description: |
     Stage 5. Witness screens agent carts against a confirmed intent,
     authorizes on PayPal (sandbox), and decides CAPTURE, HOLD, VOID or REJECT.
@@ -23,6 +23,8 @@ tags:
   - name: verify
   - name: console
   - name: demo
+  - name: ap2
+    description: AP2 delegated verification, settlement binding and receipts (ADR-0023). These live under /v2 and the site root, not /v1.
 paths:
   /intents:
     post:
@@ -448,6 +450,113 @@ paths:
       security: [{ apiKey: [admin] }]
       responses:
         "202": { description: "{ epoch, holds_released }" }
+  /verifications:
+    post:
+      tags: [ap2]
+      servers:
+        - url: https://witness-api.onrender.com/v2
+        - url: http://localhost:4000/v2
+      summary: Verify presented AP2 checkout (and payment) mandate chains; evaluate every constraint against the global ledger; sign Mandate Receipts
+      description: |
+        Decision CONFORMS | NONCONFORMING | CANNOT_CONFIRM | COSIGN_REQUIRED, with the spec's receipt errors
+        (invalid_credential, invalid_mandate, unresolved_constraint). aud and nonce are required. The caller sends
+        the issuer and merchant keys it trusts; receipts record their thumbprints. A conforming verification with a
+        payment mandate can be settled within 15 minutes.
+      security: [{ apiKey: [ap2:verify] }]
+      parameters: [{ name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 8, maxLength: 200 } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [checkout, trust]
+              properties:
+                checkout: { type: object, required: [mandate, aud, nonce], properties: { mandate: { type: string, description: "~~-joined SD-JWT chain" }, aud: { type: string }, nonce: { type: string, minLength: 8 } } }
+                payment: { type: object, required: [mandate, aud, nonce], properties: { mandate: { type: string }, aud: { type: string }, nonce: { type: string }, cosignatures: { type: array, maxItems: 5, items: { type: string } } } }
+                trust: { type: object, required: [issuers], properties: { issuers: { type: object, description: "JWKS of EC P-256 public keys" }, merchants: { type: object } } }
+      responses:
+        "201": { description: "{ verification_id, decision, error?, findings, constraints, checkout_hash, facts_attestation, cosign, settleable, merchant_signature, ledger, receipts: { checkout, payment, kid, jwks_uri }, trusted_keys }" }
+        "200": { description: Replay of the stored answer for the same Idempotency-Key and body }
+        "422": { $ref: "#/components/responses/Problem" }
+  /verifications/{verificationId}:
+    get:
+      tags: [ap2]
+      servers:
+        - url: https://witness-api.onrender.com/v2
+        - url: http://localhost:4000/v2
+      security: [{ apiKey: [ap2:verify] }]
+      parameters: [{ name: verificationId, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: The stored verification response }
+        "404": { $ref: "#/components/responses/Problem" }
+  /settlements:
+    post:
+      tags: [ap2]
+      servers:
+        - url: https://witness-api.onrender.com/v2
+        - url: http://localhost:4000/v2
+      summary: Bind a CONFORMS verification to one PayPal order; the executor re-checks it and captures, or voids a mismatch
+      security: [{ apiKey: [ap2:verify] }]
+      parameters: [{ name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 8, maxLength: 200 } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [verification_id, psp, order_id]
+              properties:
+                verification_id: { type: string }
+                psp: { type: string, enum: [paypal] }
+                order_id: { type: string }
+      responses:
+        "202": { description: "{ settlement_id, state: MATCHED | VOIDING | REFUSED, diffs, amount, ... }" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /settlements/{settlementId}:
+    get:
+      tags: [ap2]
+      servers:
+        - url: https://witness-api.onrender.com/v2
+        - url: http://localhost:4000/v2
+      summary: Settlement state; in final states, AP2 Checkout and Payment Receipts (signed JWTs)
+      security: [{ apiKey: [ap2:verify] }]
+      parameters: [{ name: settlementId, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: "{ settlement_id, state, order_id, authorization_id, capture_id, diffs, receipts: { checkout, payment } | null }" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /.well-known/jwks.json:
+    get:
+      tags: [ap2]
+      servers:
+        - url: https://witness-api.onrender.com
+        - url: http://localhost:4000
+      summary: The public keys that verify every receipt and facts attestation
+      security: []
+      responses:
+        "200": { description: "JWKS (EC P-256, ES256, kid-addressed)" }
+  /demo/ap2/test-verification:
+    post:
+      tags: [ap2, demo]
+      summary: 'Run a test verification: no account, no key; stores nothing; PayPal is not called'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [open_checkout, open_payment, jwk]
+              properties:
+                open_checkout: { type: string }
+                open_payment: { type: string }
+                jwk: { type: object, description: The public key that signed them }
+                product: { type: string, enum: [TRL-GRY-10, TRL-WHT-10, TRL-BLK-10, TRL-PRO-10] }
+      responses:
+        "200": { description: "{ decision, constraints, findings, receipts, facts_attestation, presented, jwks_uri }" }
+        "422": { $ref: "#/components/responses/Problem" }
 components:
   securitySchemes:
     apiKey: { type: http, scheme: bearer, description: "Witness API key; scopes agent:purchase | ops | demo | admin" }

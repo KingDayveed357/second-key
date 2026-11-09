@@ -1,0 +1,85 @@
+{
+  "line_items: spec example, shoe and socks": {
+    "result": "pass",
+    "violations": []
+  },
+  "line_items: spec example, two shoes": {
+    "result": "fail",
+    "violations": [
+      "Cannot satisfy line item constraints: FAF1234 (1) could not be assigned to any requirement slot"
+    ]
+  },
+  "line_items: spec example, shoe only": {
+    "result": "pass",
+    "violations": []
+  },
+  "line_items: acceptable_items withheld": {
+    "result": "pass",
+    "violations": []
+  },
+  "line_items: too many units": {
+    "result": "fail",
+    "violations": [
+      "Cannot satisfy line item constraints: A (1) could not be assigned to any requirement slot"
+    ]
+  },
+  "allowed_merchants: other merchant": {
+    "result": "fail",
+    "violations": [
+      "Merchant Other not in allowed list"
+    ]
+  },
+  "amount_range: over max": {
+    "result": "fail",
+    "violations": [
+      "Amount 20001 exceeds maximum 20000"
+    ]
+  },
+  "allowed_payees: other payee": {
+    "result": "fail",
+    "violations": [
+      "Payee Shop not in allowed list"
+    ]
+  },
+  "reference: other open checkout": {
+    "result": "fail",
+    "violations": [
+      "PaymentReference mismatch: expected open checkout hash ref-a, got ref-b"
+    ]
+  },
+  "budget: exactly at the limit": {
+    "result": "pass",
+    "violations": []
+  },
+  "budget: one cent over": {
+    "result": "fail",
+    "violations": [
+      "Cumulative spend 50001 exceeds budget limit 50000 (past spend: 30101)"
+    ]
+  },
+  "budget: 0.29 allows 29 cents": {
+    "result": "fail",
+    "violations": [
+      "Cumulative spend 29 exceeds budget limit 28 (past spend: 0)"
+    ]
+  },
+  "recurrence: max_occurrences reached": {
+    "result": "fail",
+    "violations": [
+      "Maximum occurrences exceeded: 3 >= 3"
+    ]
+  },
+  "recurrence: second use in one MONTHLY period": {
+    "result": "pass",
+    "violations": []
+  },
+  "recurrence: next MONTHLY period": {
+    "result": "pass",
+    "violations": []
+  },
+  "e2e: holder withholds acceptable_items, buys another SKU": {
+    "result": "pass",
+    "violations": [],
+    "disclosures_dropped": 1
+  }
+}
