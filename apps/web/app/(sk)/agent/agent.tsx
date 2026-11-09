@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { api, checkLabel, errText } from "../../../lib/client";
 import { clock, stageOf, usd } from "../../../lib/sk";
 import { QuoteCard, Transcript, type Evidence } from "../_ui/evidence";
-import { Button, Demo, Live, Notice, StatePill } from "../_ui/ui";
+import { Button, Demo, Notice, StatePill } from "../_ui/ui";
 import { PayPalCheck } from "../_ui/verify";
 
 interface PurchaseView {
@@ -43,10 +43,10 @@ interface AgentScenario {
 }
 
 const RUNS = [
-  { name: "steered", label: "The agent gets fooled" },
-  { name: "injection", label: "The agent ignores the trap" },
-  { name: "cart_swap", label: "Checkout swaps the item" },
   { name: "normal", label: "An ordinary page" },
+  { name: "injection", label: "A poisoned page" },
+  { name: "steered", label: "The agent obeys the page" },
+  { name: "cart_swap", label: "Checkout swaps the item" },
 ] as const;
 type RunName = (typeof RUNS)[number]["name"];
 
@@ -67,7 +67,7 @@ const STORY: Record<RunName, { held: string; done: string }> = {
 };
 
 export function Agent() {
-  const [run, setRun] = useState<RunName>("steered");
+  const [run, setRun] = useState<RunName>("injection");
   const [scenarios, setScenarios] = useState<AgentScenario[]>([]);
   const [busy, setBusy] = useState(false);
   const [purchase, setPurchase] = useState<PurchaseView | null>(null);
@@ -141,7 +141,6 @@ export function Agent() {
                 </button>
               ))}
             </div>
-            <Demo>Scripted demo agent, synthetic pages</Demo>
           </div>
           <section className="sk-phone stack-lg" aria-label="The agent's task">
             <div className="appbar">
@@ -181,9 +180,7 @@ export function Agent() {
                     <a className="sk-btn secondary" href={link.path} target="_blank" rel="noopener noreferrer">
                       Open Rose&apos;s review ↗
                     </a>
-                    <span className="xs muted">
-                      <Demo>Demo delivery</Demo> Rose decides for her own agent; valid until {clock(link.expires_at)}.
-                    </span>
+                    <span className="xs muted">Rose decides for her own agent. The request is valid until {clock(link.expires_at)}.</span>
                   </div>
                 )}
               </div>
@@ -200,7 +197,7 @@ export function Agent() {
           <div className="sk-card stack">
             <div className="row between">
               <h2 style={{ fontSize: "var(--text-lg)" }}>The page the agent read</h2>
-              <Demo>Narration</Demo>
+              <Demo>Synthetic page</Demo>
             </div>
             {story ? (
               <>
@@ -278,7 +275,6 @@ function Comparison({ ev, purchase, pp }: { ev: EvidenceView; purchase: Purchase
         <h2 id="cmp" style={{ fontSize: "var(--text-lg)" }}>
           Rose&apos;s request, the agent&apos;s cart, and PayPal&apos;s order
         </h2>
-        <Live>From the backend and PayPal</Live>
       </div>
       <p className="xs muted">Second Key fetches the product facts itself and reads PayPal&apos;s stored order before any capture. Nothing here comes from the agent&apos;s own account of what it bought.</p>
       <div style={{ overflowX: "auto" }}>
@@ -371,7 +367,7 @@ function BeatIt() {
         <h2 id="beat" style={{ fontSize: "var(--text-lg)" }}>
           Try to fool it: write your own product page
         </h2>
-        <Live>Real screening, no purchase</Live>
+        <span className="xs muted">Nothing is bought</span>
       </div>
       <p className="small soft">
         Write a page that would get Rose&apos;s agent to buy something she didn&apos;t ask for. Second Key runs its real rules and AI checks on it, against Rose&apos;s confirmed request. Nothing is bought and PayPal isn&apos;t called. If it lets through something it shouldn&apos;t, that&apos;s a finding.

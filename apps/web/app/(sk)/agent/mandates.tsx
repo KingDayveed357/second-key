@@ -10,7 +10,7 @@ import { api, errText } from "../../../lib/client";
 import { deviceKey, type DeviceKey } from "../../../lib/ap2-device";
 import { ROSE_REQUEST, roseMandates, thumbprint, type Ap2Setup } from "../../../lib/ap2-surface";
 import { usd } from "../../../lib/sk";
-import { Button, Demo, Live, Notice, Pill } from "../_ui/ui";
+import { Button, Demo, Notice, Pill } from "../_ui/ui";
 import { ReceiptRow } from "../_ap2/receipt";
 
 type RunName = "conforms" | "steered" | "wrong_product" | "cart_swap" | "reused";
@@ -167,9 +167,7 @@ export function MandateDemo() {
               </li>
               <li>Only her agent&apos;s key can use it, for the next 30 minutes</li>
             </ul>
-            <p className="xs muted">
-              AP2 can list the shoes and cap the price. &ldquo;Not white&rdquo; isn&apos;t something AP2 can say: it travels as Second Key&apos;s own constraint, checked against product facts Second Key fetches and signs itself.
-            </p>
+            <p className="xs muted">AP2 can list the shoes and cap the price, but it can&apos;t say &ldquo;not white&rdquo;. That rule travels as Second Key&apos;s own constraint, checked against product facts Second Key fetches and signs itself.</p>
             {device && (
               <p className="xs muted mono" title="RFC 7638 thumbprint of the device's public key">
                 Device key {device.kid.slice(0, 12)}… {device.persisted ? "· kept in this browser" : "· this page only (private window)"}
@@ -185,7 +183,6 @@ export function MandateDemo() {
                 </button>
               ))}
             </div>
-            <Demo>Scripted agent and merchant, synthetic shop</Demo>
           </div>
           <Button block onClick={go} busy={busy} disabled={!setup || !device}>
             {busy ? "Signing and shopping…" : "Sign the mandate and let the agent buy"}
@@ -201,7 +198,7 @@ export function MandateDemo() {
           {!view ? (
             <div className="sk-card tint stack-sm">
               <p className="small soft">
-                Pick a run and press the button. Rose&apos;s browser signs two AP2 open mandates; the agent closes them for its cart; the merchant signs the checkout; Second Key verifies everything and, if it conforms, binds the payment to PayPal&apos;s own order before anything is captured.
+                Pick a run. Rose&apos;s browser signs her mandate with its own key, the agent fills its cart, the shop signs the checkout, and Second Key checks all of it, then checks PayPal&apos;s own order before anything is captured. Each check is shown below in the order it runs.
               </p>
             </div>
           ) : (
@@ -320,9 +317,8 @@ function Receipts({ view, settlement }: { view: RunView; settlement: Settlement 
         <h2 id="receipts" style={{ fontSize: "var(--text-lg)" }}>
           Signed receipts
         </h2>
-        <Live>Signed by Second Key</Live>
       </div>
-      <p className="xs muted">Each is an ES256 JWT. &ldquo;Verify&rdquo; checks its signature in this browser against Second Key&apos;s published key set, without trusting this page&apos;s server.</p>
+      <p className="xs muted">Second Key signs every decision. &ldquo;Verify&rdquo; checks a receipt&apos;s signature in this browser against Second Key&apos;s published keys, without trusting this page&apos;s server.</p>
       <div className="stack-sm">
         {items.map((it) => (
           <ReceiptRow key={it.label + it.jwt.slice(-12)} {...it} />

@@ -7,11 +7,11 @@ import { stageOf, type Tone } from "../../../lib/sk";
 
 /** The routes in the order the demo tells its story: the agent problem, people, operations, adoption. */
 const ROUTES = [
-  { href: "/agent", label: "Agent demo", hint: "An agent is manipulated; the money isn't" },
-  { href: "/pay", label: "Payer demo", hint: "A person under pressure; a trusted second key" },
-  { href: "/desk", label: "Protection Desk", hint: "Every incident and its evidence, on AG Grid" },
-  { href: "/developers", label: "Developers", hint: "Integrate it; run the sandbox conformance suite" },
-  { href: "/try", label: "Try the analysis", hint: "Test the AI on your own text" },
+  { href: "/pay", label: "People", hint: "Rose is pressured into a $1,800 payment" },
+  { href: "/agent", label: "Agents", hint: "Rose's shopping agent meets a poisoned page" },
+  { href: "/desk", label: "Protection Desk", hint: "Inspect every decision and its evidence" },
+  { href: "/developers", label: "Developers", hint: "The API, AP2 verification, the conformance suite" },
+  { href: "/about", label: "About", hint: "What is real, sandboxed and synthetic here" },
 ] as const;
 
 /**
@@ -50,7 +50,7 @@ export function Nav() {
   return (
     <>
       <nav className="sk-nav" aria-label="Second Key">
-        {ROUTES.slice(0, 4).map((r) => (
+        {ROUTES.map((r) => (
           <Link key={r.href} href={r.href} aria-current={current(r.href)}>
             {r.label}
           </Link>
@@ -87,10 +87,10 @@ export function StatePill({ state }: { state: string | null | undefined }) {
   return <Pill tone={s.tone}>{s.label}</Pill>;
 }
 
-/** Marks a value read from the real backend / PayPal sandbox, or synthetic demo content. */
-export function Live({ children = "Live sandbox" }: { children?: ReactNode }) {
-  return <span className="sk-tag live">{children}</span>;
-}
+/**
+ * Marks synthetic content that could otherwise be mistaken for real (a call transcript, a product page).
+ * Use once per object, only where needed: what is real, sandboxed and synthetic is stated once, on /about.
+ */
 export function Demo({ children = "Demo data" }: { children?: ReactNode }) {
   return <span className="sk-tag demo">{children}</span>;
 }

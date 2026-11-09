@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, type Problem } from "../../../lib/client";
 import { rankEvidence, tacticOf } from "../../../lib/sk";
 import { QuoteCard, Transcript, type Conversation } from "../_ui/evidence";
-import { Button, Demo, Live, Notice, Pill } from "../_ui/ui";
+import { Button, Demo, Notice, Pill } from "../_ui/ui";
 
 interface Sample {
   id: string;
@@ -93,18 +93,24 @@ export function Playground() {
     }
   }
 
+  // Stacked layout (phones, small tablets): the result renders below the form, so bring it into view.
+  useEffect(() => {
+    if (!(res || err) || !window.matchMedia("(max-width: 900px)").matches) return;
+    out.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }, [res, err]);
+
   const findings = res ? rankEvidence(res.analysis.findings) : [];
   const o = res ? OUTCOME[res.policy.intervention] : null;
 
   return (
-    <div className="sk-stage" style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.1fr)" }}>
+    <div className="sk-try">
       <section className="stack" aria-label="Your input">
         <div className="sk-card stack">
           <div className="row between">
             <h2 style={{ fontSize: "var(--text-lg)" }}>Paste a message, or pick a sample</h2>
             <Demo>Samples are synthetic</Demo>
           </div>
-          <div className="row" role="group" aria-label="Samples" style={{ gap: 8 }}>
+          <div className="sk-try-samples" role="group" aria-label="Samples">
             {samples.map((s) => (
               <button key={s.id} className="sk-chip" aria-pressed={picked === s.id} onClick={() => pick(s)} title={s.provenance}>
                 {s.label}
@@ -121,7 +127,7 @@ export function Playground() {
               rows={9}
               maxLength={4000}
               placeholder={"Caller: This is your bank's fraud team…\nYou: What do I need to do?"}
-              style={{ font: "inherit", fontFamily: "var(--serif)", fontSize: "1.0625rem", lineHeight: 1.5, padding: 12, borderRadius: 12, border: "1px solid var(--line-strong)", background: "var(--surface)", color: "var(--ink)", resize: "vertical" }}
+              className="sk-try-field" style={{ fontFamily: "var(--serif)", fontSize: "1.0625rem", lineHeight: 1.5, padding: 12, resize: "vertical" }}
             />
             <span className="xs muted" style={{ textAlign: "right" }}>{text.length.toLocaleString()} / 4,000</span>
           </label>
@@ -133,7 +139,7 @@ export function Playground() {
               value={context}
               onChange={(e) => setContext(e.target.value)}
               maxLength={300}
-              style={{ minHeight: 44, padding: "0 12px", borderRadius: 10, border: "1px solid var(--line-strong)", font: "inherit", background: "var(--surface)", color: "var(--ink)" }}
+              className="sk-try-field" style={{ minHeight: 44, padding: "0 12px" }}
             />
           </label>
           <Button onClick={analyse} busy={busy} disabled={text.trim().length < 10}>
@@ -150,7 +156,7 @@ export function Playground() {
         </div>
       </section>
 
-      <section className="stack" aria-label="Result" aria-live="polite" ref={out} tabIndex={-1}>
+      <section className="stack" aria-label="Result" aria-live="polite" ref={out} tabIndex={-1} style={{ scrollMarginTop: 84 }}>
         {!res && !err && (
           <div className="sk-card stack">
             <h2 style={{ fontSize: "var(--text-lg)" }}>What you&apos;ll see</h2>
@@ -191,9 +197,9 @@ export function Playground() {
               <div className="row between">
                 <span className="sk-section-title">What the AI observed</span>
                 {res.analysis.ok ? (
-                  <Live>
-                    {res.cached ? `Live result, cached ${res.cached.seconds_ago}s ago (same input)` : `Live analysis · ${res.analysis.model} · ${(res.analysis.latency_ms / 1000).toFixed(1)} s`}
-                  </Live>
+                  <span className="xs muted">
+                    {res.cached ? `Cached ${res.cached.seconds_ago}s ago (same input)` : `${res.analysis.model} · ${(res.analysis.latency_ms / 1000).toFixed(1)} s`}
+                  </span>
                 ) : (
                   <Pill tone="bad">No answer from the model</Pill>
                 )}

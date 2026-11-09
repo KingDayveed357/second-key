@@ -11,7 +11,7 @@ import { api, errText } from "../../../lib/client";
 import { roseMandates, thumbprint, type Ap2Setup } from "../../../lib/ap2-surface";
 import { TEMPLATES, templateFile, type ConstraintTemplate } from "../../../lib/ap2-templates";
 import { usd } from "../../../lib/sk";
-import { Button, Live, Notice, Pill } from "../_ui/ui";
+import { Button, Notice, Pill } from "../_ui/ui";
 import { ReceiptRow } from "./receipt";
 
 interface TestResult {
@@ -103,7 +103,7 @@ export function TestVerification() {
         <h2 id="test-verification" style={{ fontSize: "var(--text-lg)" }}>
           Run a test verification
         </h2>
-        <Live>Real verifier · no account, no key</Live>
+        <span className="xs muted">No account, no key</span>
       </div>
       <p className="small soft">
         Your browser makes a throwaway key and signs two AP2 open mandates with it. A demo agent closes them for the product you pick, Second Key&apos;s real verifier checks them and signs receipts, and your browser checks those receipts against our published key set. Nothing is stored and PayPal isn&apos;t called.

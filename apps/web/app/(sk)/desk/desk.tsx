@@ -9,7 +9,7 @@ import { api, errText } from "../../../lib/client";
 import { LENSES, VIEWS, csvSafe, formatTotals, groupBy, toRow, totalsByCurrency, type DeskRow, type Incident, type LensKey, type ViewKey } from "../../../lib/desk";
 import { deciderOf, rankEvidence, stageOf, tacticOf, usd, when } from "../../../lib/sk";
 import { QuoteCard, Transcript, type Conversation, type Evidence } from "../_ui/evidence";
-import { Button, Live, Notice, Pill, StatePill } from "../_ui/ui";
+import { Button, Notice, Pill, StatePill } from "../_ui/ui";
 import { PayPalCheck } from "../_ui/verify";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -305,9 +305,9 @@ export function Desk({ mode }: { mode: Mode }) {
     <div className="stack">
       <div className="row between">
         <div className="row" style={{ gap: 8 }}>
-          {mode === "public" ? <Pill tone="neutral">Public demo view · read-only · this demo session</Pill> : <Pill tone="ok">Operator · signed in</Pill>}
+          <span className="small soft">{mode === "public" ? "Your demo session" : "Operator view · all sessions available"}</span>
           {stale && <Pill tone="bad">Showing last known data</Pill>}
-          <span className="xs muted">AG Grid Community · times in {Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
+          <span className="xs muted">Times in {Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
         </div>
         <div className="row" style={{ gap: 8 }}>
           {mode === "operator" && (
@@ -578,7 +578,7 @@ function IncidentDetail({ id, mode }: { id: string; mode: Mode }) {
     <div className="stack">
       <div className="sk-card stack">
         <div className="row between">
-          <Pill tone="neutral">{isTransfer ? "Human transfer" : "Agent purchase"}</Pill>
+          <span className="small soft">{isTransfer ? "Started by the payer" : "Started by Rose's shopping agent"}</span>
           <StatePill state={p.state} />
         </div>
         <div className="row between" style={{ alignItems: "baseline" }}>
@@ -597,8 +597,8 @@ function IncidentDetail({ id, mode }: { id: string; mode: Mode }) {
 
       <section className="sk-card stack" aria-labelledby="ev-h">
         <div className="row between">
-          <h2 id="ev-h" style={{ fontSize: "var(--text-lg)" }}>Evidence, in its source</h2>
-          <span className="xs muted">Quotes are verified by code to appear in the source</span>
+          <h2 id="ev-h" style={{ fontSize: "var(--text-lg)" }}>What was detected, in its source</h2>
+          <span className="xs muted">Code confirms each quote appears in the source</span>
         </div>
         {evidence.length === 0 && <p className="small soft">No pressure patterns or agent instructions were found.</p>}
         {evidence.map((e, i) => (
@@ -630,7 +630,7 @@ function IncidentDetail({ id, mode }: { id: string; mode: Mode }) {
       </section>
 
       <section className="sk-card stack" aria-labelledby="as-h">
-        <h2 id="as-h" style={{ fontSize: "var(--text-lg)" }}>Assessment</h2>
+        <h2 id="as-h" style={{ fontSize: "var(--text-lg)" }}>What the checks found</h2>
         <p className="xs muted">Rules decide; AI checks can only pause a payment, never approve or move money.</p>
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 10 }}>
           {[...screen, ...recheck].map((c, i) => (
@@ -651,7 +651,7 @@ function IncidentDetail({ id, mode }: { id: string; mode: Mode }) {
       </section>
 
       <section className="sk-card stack" aria-labelledby="dec-h">
-        <h2 id="dec-h" style={{ fontSize: "var(--text-lg)" }}>Decisions</h2>
+        <h2 id="dec-h" style={{ fontSize: "var(--text-lg)" }}>Who decided</h2>
         {ev.decisions.length === 0 && <p className="small soft">No decision recorded yet.</p>}
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8 }}>
           {ev.decisions.map((d, i) => (
@@ -663,7 +663,7 @@ function IncidentDetail({ id, mode }: { id: string; mode: Mode }) {
       </section>
 
       <section className="sk-card stack" aria-labelledby="pp-h">
-        <h2 id="pp-h" style={{ fontSize: "var(--text-lg)" }}>The money, according to PayPal</h2>
+        <h2 id="pp-h" style={{ fontSize: "var(--text-lg)" }}>What PayPal recorded</h2>
         {p.paypal.order_id ? (
           <PayPalCheck
             path={`/v1/purchases/${p.id}/paypal`}
@@ -698,8 +698,8 @@ function IncidentDetail({ id, mode }: { id: string; mode: Mode }) {
 
       <section className="sk-card stack" aria-labelledby="tl-h">
         <div className="row between">
-          <h2 id="tl-h" style={{ fontSize: "var(--text-lg)" }}>Timeline</h2>
-          {ev.chain.valid ? <Live>Audit chain verified</Live> : <Pill tone="bad">Audit chain broken</Pill>}
+          <h2 id="tl-h" style={{ fontSize: "var(--text-lg)" }}>Audit trail</h2>
+          {ev.chain.valid ? <Pill tone="ok">Audit chain verified</Pill> : <Pill tone="bad">Audit chain broken</Pill>}
         </div>
         {ev.chain.events.length === 0 && <p className="small soft">No audit events found for this payment.</p>}
         <ol className="sk-timeline">

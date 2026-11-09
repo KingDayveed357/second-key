@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, errText } from "../../../lib/client";
 import { clock, deciderOf, rankEvidence, stageOf, usd, when } from "../../../lib/sk";
 import { QuoteCard, Transcript, type Conversation, type Evidence } from "../_ui/evidence";
-import { Button, Demo, Live, Notice, Pill, Rail, StatePill } from "../_ui/ui";
+import { Button, Demo, Notice, Pill, Rail, StatePill } from "../_ui/ui";
 import { PayPalCheck } from "../_ui/verify";
 import { ProtectionSetup, ProtectionSummary, openGuardianWindow, type ProtectionView } from "./protection";
 
@@ -250,7 +250,7 @@ export function Payer() {
   const stage = stageOf(state);
 
   const reviewed = Boolean(ruleCheck) || (concern ? concern.result !== "pass" : false);
-  const rail = useMemo(() => railFor(state, guardianHold, reviewed, TRUSTED), [state, guardianHold, reviewed, TRUSTED]);
+  const rail = useMemo(() => railFor(state, guardianHold, reviewed, TRUSTED, lastDecision?.decided_by), [state, guardianHold, reviewed, TRUSTED, lastDecision?.decided_by]);
 
   return (
     <div className="sk-stage">
@@ -263,7 +263,6 @@ export function Payer() {
               </button>
             ))}
           </div>
-          <Demo>Synthetic scenario</Demo>
         </div>
 
         <section className="sk-phone" aria-label={`${PAYER}'s phone`}>
@@ -317,7 +316,7 @@ export function Payer() {
               </Button>
               {phase === "checking" && (
                 <p className="small soft" role="status">
-                  Second Key is checking this payment against your rule{shareWith ? " and reading what you shared" : ""}, and asking PayPal to reserve the money. Nothing is sent until the check finishes.
+                  Checking against your rule{shareWith ? " and reading what you shared" : ""}. Nothing is sent until the check finishes.
                 </p>
               )}
             </div>
@@ -395,7 +394,6 @@ export function Payer() {
                           <Button size="sm" variant="secondary" onClick={shareNow} busy={sharing}>
                             Share the conversation
                           </Button>
-                          <Demo>Shares the synthetic transcript</Demo>
                         </div>
                       </div>
                     )}
@@ -439,9 +437,9 @@ export function Payer() {
                 </>
               )}
 
-              {state === "CAPTURED" && (
+              {state === "CAPTURED" && info.payout_configured && (
                 <p className="xs muted">
-                  Two steps, each confirmed by PayPal: the payment is captured by the Second Key demo merchant, then paid out to {info.payee.name}
+                  Two PayPal steps, each confirmed separately: the capture above, then the payout to {info.payee.name}
                   {info.payee.email ? `'s PayPal account (${info.payee.email})` : ""}.
                 </p>
               )}
@@ -467,16 +465,13 @@ export function Payer() {
 
       <aside className="stack">
         <div className="sk-card stack">
-          <div className="row between">
-            <h2 style={{ fontSize: "var(--text-lg)" }}>What&apos;s happening</h2>
-            {purchase && <Live />}
-          </div>
+          <h2 style={{ fontSize: "var(--text-lg)" }}>The money</h2>
           <Rail label="Payment progress" steps={rail} />
           {!purchase && (
             <p className="small soft">
               {protection?.protection_on
-                ? "Pick a scenario and tap Send. The payment goes through the real Second Key engine and the PayPal sandbox: Rose's standing rule and any conversation she chooses to share are checked, PayPal reserves the money, and a paused payment completes only if her trusted contact approves it on their own phone."
-                : "First, Rose sets up her second key: a rule, and a trusted contact who accepts on their own phone. Then she can send."}
+                ? "Pick a scenario and send it. Each step above lights up only when Second Key or PayPal confirms it."
+                : "First, Rose sets her rule and chooses Sarah as her trusted contact. Sarah accepts on her own phone."}
             </p>
           )}
           {purchase && (
@@ -510,12 +505,9 @@ export function Payer() {
 
         {protection && (protection.protection_on || protection.guardians.length > 0) && (
           <div className="sk-card stack">
-            <div className="row between">
-              <h2 style={{ fontSize: "var(--text-lg)" }}>{TRUSTED}&apos;s phone</h2>
-              <Demo>Demo channel</Demo>
-            </div>
+            <h2 style={{ fontSize: "var(--text-lg)" }}>{TRUSTED}&apos;s phone</h2>
             <p className="small soft">
-              {TRUSTED}&apos;s requests go to {TRUSTED}&apos;s phone, never to this screen. In this demo a separate window stands in for that phone and holds its own key; this page can&apos;t read it. In production the request goes by text or email from a provider, and that channel&apos;s security is what keeps the two keys apart.
+              Requests go to {TRUSTED}&apos;s phone, never to this screen. Here a separate window stands in for it and holds its own key.
             </p>
             <Button variant="secondary" onClick={openGuardianWindow}>
               Open {TRUSTED}&apos;s phone ↗
@@ -606,7 +598,7 @@ function headline(state: string | undefined, decidedBy: string | undefined, byRu
     case "CAPTURE_PENDING":
       return byContact ? `${TRUSTED} approved it` : "Nothing unusual found";
     case "CAPTURED":
-      return "Sent";
+      return "Payment completed";
     case "REJECTED":
       return "This payment wasn't sent";
     default:
@@ -638,20 +630,22 @@ function body(state: string | undefined, amount: string, payee: string, decidedB
   }
 }
 
-/** Steps derived only from backend states: check → reserved → decision → PayPal confirmed. */
-function railFor(state: string | undefined, asked: boolean, needsReview: boolean, trusted: string): { label: string; status: "done" | "held" | "bad" | "now" | "todo"; moving?: boolean }[] {
+/** Steps derived only from backend states: checked → reserved by PayPal → decision → PayPal captured or cancelled. */
+function railFor(state: string | undefined, asked: boolean, needsReview: boolean, trusted: string, decidedBy?: string): { label: string; status: "done" | "held" | "bad" | "now" | "todo"; moving?: boolean }[] {
   const s = state ?? "";
   const checked = !["", "SCREENING", "AUTHORIZING"].includes(s);
   const decided = ["VOIDING", "VOIDED", "CAPTURE_APPROVED", "CAPTURE_PENDING", "CAPTURED"].includes(s);
   const confirmed = ["VOIDED", "CAPTURED"].includes(s);
+  const reserved = ["HELD", "VOIDING", "VOIDED", "CAPTURE_APPROVED", "CAPTURING", "CAPTURE_PENDING", "CAPTURED"].includes(s);
   if (s === "REJECTED" || s === "AUTH_FAILED")
     return [
       { label: "Checked", status: "done" },
-      { label: s === "REJECTED" ? "Not sent" : "PayPal refused", status: "bad" },
+      { label: s === "REJECTED" ? "Refused: PayPal never called" : "PayPal couldn't reserve it", status: "bad" },
     ];
   return [
     { label: "Checked", status: checked ? "done" : s ? "now" : "todo", moving: true },
-    { label: s === "HELD" ? (asked ? `Waiting for ${trusted}` : "Paused") : !s ? "Reviewed if needed" : needsReview ? "Decided" : "No review needed", status: decided ? "done" : s === "HELD" ? "now" : "todo", moving: false },
-    { label: confirmed ? (s === "VOIDED" ? "Cancelled" : "Completed") : "PayPal confirms", status: confirmed ? "done" : decided ? "now" : "todo", moving: true },
+    { label: "Reserved by PayPal", status: reserved ? "done" : s === "AUTHORIZING" ? "now" : "todo", moving: true },
+    { label: s === "HELD" ? (asked ? `Waiting for ${trusted}` : "Paused") : !s ? `${trusted} decides, if asked` : byPayerOf(decidedBy) ? "You cancelled" : byContactOf(decidedBy) ? `${trusted} decided` : needsReview ? "Decided" : "No review needed", status: decided ? "done" : s === "HELD" ? "now" : "todo", moving: false },
+    { label: confirmed ? (s === "VOIDED" ? "Cancelled by PayPal" : "Captured by PayPal") : "PayPal completes or cancels", status: confirmed ? "done" : decided ? "now" : "todo", moving: true },
   ];
 }

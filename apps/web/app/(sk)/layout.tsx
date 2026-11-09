@@ -2,10 +2,12 @@ import Link from "next/link";
 import "./sk.css";
 import "./sk-shell.css";
 import { Mark } from "./_ui/mark";
-import { Demo, Live, Nav } from "./_ui/ui";
+import { Nav } from "./_ui/ui";
 
-// Second Key chrome. The legend in the footer is the product's honesty contract: anything marked
-// "Live sandbox" was read from the real backend or PayPal sandbox; "Demo data" is synthetic.
+const REPO = "https://github.com/KingDayveed357/second-key";
+
+// Second Key chrome. What is real, sandboxed and synthetic is stated once, in the footer and in full
+// on /about, rather than tagged on every component. The footer ends on the brand signature.
 export default function SecondKeyLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="sk">
@@ -24,13 +26,72 @@ export default function SecondKeyLayout({ children }: { children: React.ReactNod
       <main className="sk-main" id="main" tabIndex={-1}>
         {children}
       </main>
-      <footer className="sk-foot">
-        <Live />
-        <Demo>Demo data: synthetic people, conversations and the trusted contact&apos;s phone</Demo>
-        <span>PayPal sandbox only. No real money moves.</span>
-        <Link href="/try" style={{ marginLeft: "auto" }}>
-          Test the analysis on your own text
-        </Link>
+      <footer className="sk-footer">
+        <div className="sk-footer-inner">
+          <div className="sk-footer-top">
+            <div className="sk-footer-brand">
+              <Mark size={18} />
+              <p className="statement">Manipulation shouldn&apos;t move money.</p>
+              <p className="note">
+                A working demo on the PayPal sandbox with synthetic people. No real money moves. <Link href="/about">What&apos;s real here</Link>
+              </p>
+            </div>
+            <nav className="sk-footer-nav" aria-label="Footer">
+              <div>
+                <h2>See it work</h2>
+                <ul>
+                  <li>
+                    <Link href="/pay">People</Link>
+                  </li>
+                  <li>
+                    <Link href="/agent">Agents</Link>
+                  </li>
+                  <li>
+                    <Link href="/try">Try the analysis</Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h2>Inspect it</h2>
+                <ul>
+                  <li>
+                    <Link href="/desk">Protection Desk</Link>
+                  </li>
+                  <li>
+                    <Link href="/developers">Developers</Link>
+                  </li>
+                  <li>
+                    <Link href="/about">About this demo</Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h2>Source</h2>
+                <ul>
+                  <li>
+                    <a href={REPO}>GitHub ↗</a>
+                  </li>
+                  <li>
+                    <a href={`${REPO}/blob/main/docs/openapi.yaml`}>OpenAPI ↗</a>
+                  </li>
+                  <li>
+                    <a href={`${REPO}/tree/main/docs/decisions`}>Decision records ↗</a>
+                  </li>
+                </ul>
+              </div>
+            </nav>
+          </div>
+          <div className="sk-footer-legal">
+            <span>© 2026 Second Key</span>
+            <span>Built for the PayPal AI Hackathon · PayPal sandbox only</span>
+          </div>
+        </div>
+        {/* The brand signature, full width. Decorative: the header link already names the product. */}
+        <div className="sk-footer-sign">
+          <p className="sk-wordmark" aria-hidden="true">
+            Second Key
+          </p>
+        </div>
       </footer>
     </div>
   );
