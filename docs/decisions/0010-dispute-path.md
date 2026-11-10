@@ -1,6 +1,4 @@
-# 0010: Disputes: buyer-opened in the sandbox, evidence submitted by Witness
-
-> The product was called **Witness** when this was written and is now **Second Key**. The decision is unchanged unless a later ADR says otherwise.
+# 0010: Disputes: buyer-opened in the sandbox, evidence submitted by Second Key
 
 Status: **Accepted** (Dave, Checkpoint 2, 2026-10-11) 
 
@@ -11,14 +9,14 @@ Spike 05 created disputes with an undocumented `POST /v1/customer/disputes` plus
 ## Options
 
 1. Keep trying the undocumented create endpoint. It needs partner permissions we deliberately don't use.
-2. **The buyer opens disputes in the sandbox UI** (once per demo seed), and Witness handles everything merchant-side via the documented API.
+2. **The buyer opens disputes in the sandbox UI** (once per demo seed), and Second Key handles everything merchant-side via the documented API.
 3. Drop disputes; export evidence as a static file.
 
 ## Decision (proposed)
 
-Option 2. The demo seeds one captured purchase with a buyer-opened dispute. The `CUSTOMER.DISPUTE.CREATED` webhook (or the reconciler) links it to the purchase; Witness drafts evidence; the reviewer approves; Witness calls provide-evidence; the sandbox `adjudicate` call is labelled "simulated verdict" on screen.
+Option 2. The demo seeds one captured purchase with a buyer-opened dispute. The `CUSTOMER.DISPUTE.CREATED` webhook (or the reconciler) links it to the purchase; Second Key drafts evidence; the reviewer approves; Second Key calls provide-evidence; the sandbox `adjudicate` call is labelled "simulated verdict" on screen.
 
-If Gate 4 can't complete (for example, provide-evidence fails), fall back to option 3, as BRIEF's decision rule says.
+If Gate 4 can't complete (for example, provide-evidence fails), fall back to option 3, as the original brief's decision rule said.
 
 ## Consequences
 

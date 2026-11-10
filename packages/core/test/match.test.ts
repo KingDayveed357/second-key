@@ -37,7 +37,7 @@ describe("three-way match", () => {
     const d = threeWayMatch(exp, order({ items: [{ name: "White", sku: "TRL-WHT-10", quantity: "1", unit_amount: { currency_code: "USD", value: "84.00" } }] }));
     expect(d).toEqual([
       "missing: approved SKU TRL-GRY-10 is not in PayPal's order",
-      "unapproved: PayPal's order contains SKU TRL-WHT-10, which Witness never approved",
+      "unapproved: PayPal's order contains SKU TRL-WHT-10, which Second Key never approved",
     ]);
   });
 

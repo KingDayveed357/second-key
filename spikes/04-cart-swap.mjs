@@ -1,6 +1,6 @@
 // Spike 04: the cart-swap catch (the demo's "wait, what?" moment).
 //
-// Witness approves the agent's cart: grey trail shoe, $84. The merchant's checkout
+// Second Key approves the agent's cart: grey trail shoe, $84. The merchant's checkout
 // then creates a PayPal order for a WHITE shoe at the same $84. Price, budget and
 // total all still pass. Only matching against PayPal's own authorized order catches it.
 //
@@ -15,7 +15,7 @@ import {
 import { evaluateCart, approve, assertCapturable, GateRefusal } from "./lib/gate.mjs";
 import { cartOf, TRAIL_SHOE_POLICY } from "./lib/catalog.mjs";
 
-// 1. The agent proposes a compliant cart and Witness approves exactly that cart.
+// 1. The agent proposes a compliant cart and Second Key approves exactly that cart.
 const proposed = cartOf("TRL-GRY-10");
 const evaluation = evaluateCart(TRAIL_SHOE_POLICY, proposed);
 const approval = approve(TRAIL_SHOE_POLICY, proposed, evaluation);
@@ -43,7 +43,7 @@ if (!auth) {
 console.log(`Authorization ${auth.id}: ${auth.status}. Funds are held.\n`);
 console.log("A naive integration would capture now: the amount matches and the total is under budget.\n");
 
-// 3. Witness re-reads PayPal's order and refuses to capture.
+// 3. Second Key re-reads PayPal's order and refuses to capture.
 const paypalOrder = await getOrder(order.id, "get-swapped-order");
 let refused = false;
 try {
@@ -52,7 +52,7 @@ try {
 } catch (err) {
   if (!(err instanceof GateRefusal)) throw err;
   refused = true;
-  console.log("Witness three-way match against PayPal's order:");
+  console.log("Second Key three-way match against PayPal's order:");
   for (const r of err.reasons) console.log(`   ✘ ${r}`);
 }
 

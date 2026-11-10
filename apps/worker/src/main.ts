@@ -1,4 +1,4 @@
-// Witness worker: the only process that can move money. It has no HTTP server; work arrives only
+// Second Key worker: the only process that can move money. It has no HTTP server; work arrives only
 // as database-backed jobs (pg-boss). Runs the executor, webhook processing, HOLD timeouts and the
 // reconciliation sweep.
 

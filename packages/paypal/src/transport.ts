@@ -53,7 +53,7 @@ export function assertSandbox(baseUrl: string): URL {
     throw new Error("Refusing to run: PAYPAL_BASE_URL is not a valid URL.");
   }
   if (u.protocol !== "https:" || u.hostname !== SANDBOX_HOST || u.port !== "") {
-    throw new Error(`Refusing to run against ${u.origin}: Witness is sandbox-only (${SANDBOX_HOST}).`);
+    throw new Error(`Refusing to run against ${u.origin}: Second Key is sandbox-only (${SANDBOX_HOST}).`);
   }
   return u;
 }

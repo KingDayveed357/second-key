@@ -2,7 +2,7 @@
   "name": "witness",
   "version": "0.1.0",
   "private": true,
-  "description": "Witness: AI agents spend on PayPal only what the human actually asked for.",
+  "description": "Second Key: AI agents spend on PayPal only what the human actually asked for.",
   "type": "module",
   "license": "MIT",
   "packageManager": "pnpm@10.33.0",

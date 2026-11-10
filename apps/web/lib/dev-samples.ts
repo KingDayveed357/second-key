@@ -10,12 +10,12 @@ export const SETUP = `git clone https://github.com/KingDayveed357/second-key && 
 pnpm install
 cp .env.example .env            # PayPal sandbox app credentials (Vault enabled)
 pnpm db:dev                     # embedded Postgres; leave it running
-pnpm db:migrate && pnpm db:seed # sandbox keys -> .witness/dev-keys.json
+pnpm db:migrate && pnpm db:seed # sandbox keys -> .secondkey/dev-keys.json
 pnpm api                        # http://127.0.0.1:4000
 pnpm worker                     # the only process that moves money`;
 
 export const ENV = `export SK=http://127.0.0.1:4000
-export SK_SHOPPER_KEY=wk_...   # "shopper" in .witness/dev-keys.json
+export SK_SHOPPER_KEY=wk_...   # "shopper" in .secondkey/dev-keys.json
 export SK_AGENT_KEY=wk_...     # "agent"`;
 
 const POLICY_JSON = `{

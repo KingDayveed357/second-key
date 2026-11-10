@@ -16,7 +16,7 @@ info:
 
     Auth: Bearer API keys (wk_...), one role per key (see securitySchemes).
     Errors: RFC 9457 problem documents with a trace_id. Request bodies are strict:
-    unknown fields are refused. Formerly named Witness; package names keep that name.
+    unknown fields are refused. Formerly named Second Key; package names keep that name.
   license:
     name: MIT
 servers:

@@ -1,4 +1,4 @@
-// Witness API process. Holds the PayPal secret for creating and reading orders only; the
+// Second Key API process. Holds the PayPal secret for creating and reading orders only; the
 // transport refuses capture/void in this process (role "api").
 
 import { catalogFromEnv } from "@witness/catalog";

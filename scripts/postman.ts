@@ -1,7 +1,7 @@
-// Generates postman/witness.postman_collection.json: every public endpoint plus the judge scenarios,
+// Generates postman/second-key.postman_collection.json: every public endpoint plus the judge scenarios,
 // each with assertions. Run it with Newman against a local or hosted API:
 //   pnpm postman:build
-//   npx newman run postman/witness.postman_collection.json --env-var baseUrl=... --env-var agentKey=...
+//   npx newman run postman/second-key.postman_collection.json --env-var baseUrl=... --env-var agentKey=...
 // Keys are collection variables left blank here; never commit filled values.
 
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -226,7 +226,7 @@ const collection = {
   info: {
     name: "Second Key API",
     description:
-      "Second Key (formerly Witness): payment control for people and AI agents, and an AP2 delegated verifier, on the PayPal sandbox. Set baseUrl and the four role keys (from `pnpm db:seed`). Scenario folders create real sandbox orders. Requests run in order; later requests use ids saved by earlier ones.",
+      "Second Key: payment control for people and AI agents, and an AP2 delegated verifier, on the PayPal sandbox. Set baseUrl and the four role keys (from `pnpm db:seed`). Scenario folders create real sandbox orders. Requests run in order; later requests use ids saved by earlier ones.",
     schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
   },
   event: [{ listen: "prerequest", script: { type: "text/javascript", exec: [`pm.collectionVariables.set("expiresAt", new Date(Date.now() + 7 * 86400000).toISOString());`] } }],
@@ -241,5 +241,5 @@ const collection = {
 };
 
 mkdirSync(join(ROOT, "postman"), { recursive: true });
-writeFileSync(join(ROOT, "postman", "witness.postman_collection.json"), JSON.stringify(collection, null, 2) + "\n");
-console.log(`postman/witness.postman_collection.json: ${folders.reduce((s, f) => s + f.items.length, 0)} requests in ${folders.length} folders`);
+writeFileSync(join(ROOT, "postman", "second-key.postman_collection.json"), JSON.stringify(collection, null, 2) + "\n");
+console.log(`postman/second-key.postman_collection.json: ${folders.reduce((s, f) => s + f.items.length, 0)} requests in ${folders.length} folders`);

@@ -1,4 +1,4 @@
-// Product facts as Witness fetched them from the catalog source. Never the agent's description.
+// Product facts as Second Key fetched them from the catalog source. Never the agent's description.
 
 import { z } from "zod";
 import { CURRENCIES } from "./money.ts";

@@ -158,7 +158,7 @@ describe("dispute evidence draft", () => {
     const id = await captured();
     const { FakeLlm } = await import("@witness/ai");
     const saved = h.d.ai;
-    h.d.ai = new FakeLlm().on("evidence", () => ({ narrative: "The shopper asked for {{intent_text}}. Witness captured {{amount}} {{currency}} on order {{order_id}} after the checks passed.", cited_fields: ["checks"] }));
+    h.d.ai = new FakeLlm().on("evidence", () => ({ narrative: "The shopper asked for {{intent_text}}. Second Key captured {{amount}} {{currency}} on order {{order_id}} after the checks passed.", cited_fields: ["checks"] }));
     const r = await app.inject({ method: "POST", url: `/v1/purchases/${id}/dispute-evidence/draft`, headers: { authorization: `Bearer ${opsKey}` } });
     h.d.ai = saved;
     expect(r.json().source).toBe("ai");

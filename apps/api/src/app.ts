@@ -1,4 +1,4 @@
-// The public Witness API. It screens, authorizes and decides; it has NO capture or void route
+// The public Second Key API. It screens, authorizes and decides; it has NO capture or void route
 // (money moves only in the worker's executor; see the route-inventory test).
 
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";

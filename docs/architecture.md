@@ -1,6 +1,6 @@
 # Second Key architecture
 
-Status: **current** · updated 2026-11-10 · Decisions referenced as ADR-NNNN live in `docs/decisions/`. Second Key was called Witness until November 2026; package names (`@witness/*`) and some table names keep the old name.
+Status: **current** · updated 2026-11-10 · Decisions referenced as ADR-NNNN live in `docs/decisions/`. Internal identifiers (package names such as `@witness/*`, `WITNESS_*` environment variables, Render service names) keep the project's original code name; nothing user-facing does.
 
 ## 1. Shape of the system in one paragraph
 
@@ -382,7 +382,7 @@ The full contract is `docs/openapi.yaml` (OpenAPI 3.1). In summary:
 
 **There is no capture, void or payout endpoint anywhere.**
 
-## 11. How each early `validation/REPORT.md` finding is closed
+## 11. How each early spike finding is closed
 
 | Finding | Closed by |
 |---|---|

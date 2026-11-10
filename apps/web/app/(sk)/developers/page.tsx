@@ -476,7 +476,7 @@ export default function Page() {
               <strong>API reference</strong>
               <span>OpenAPI 3.1: every route, schema and error</span>
             </a>
-            <a href={`${BLOB}/postman/witness.postman_collection.json`}>
+            <a href={`${BLOB}/postman/second-key.postman_collection.json`}>
               <strong>Postman collection</strong>
               <span>The sandbox scenarios with assertions on PayPal&apos;s own state, plus AP2</span>
             </a>

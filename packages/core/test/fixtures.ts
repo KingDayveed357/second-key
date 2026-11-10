@@ -1,4 +1,4 @@
-// Shared test data: the trail-shoe intent from BRIEF.md and products sold at two retailers.
+// Shared test data: the trail-shoe intent used throughout the docs and products sold at two retailers.
 
 import { PolicyV1, type ProductFacts, type PurchaseRequest } from "../src/index.ts";
 

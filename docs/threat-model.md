@@ -1,6 +1,6 @@
 # Second Key threat model
 
-Status: **current** · updated 2026-11-10 · Scope: the system in `docs/architecture.md`, PayPal sandbox only. (Second Key was called Witness until November 2026.)
+Status: **current** · updated 2026-11-10 · Scope: the system in `docs/architecture.md`, PayPal sandbox only.
 
 ## Assets
 

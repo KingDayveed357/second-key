@@ -1,6 +1,6 @@
 # 0023: Second Key as an AP2 delegated verifier
 
-Status: accepted (2026-11-10). Builds on ADR-0005 (capture isolation), ADR-0020 (the second key), ADR-0021 (policy over grounded evidence). Strategy: [docs/strategy/2026-11-02-frontier-infrastructure.md](../strategy/2026-11-02-frontier-infrastructure.md).
+Status: accepted (2026-11-10). Builds on ADR-0005 (capture isolation), ADR-0020 (the second key), ADR-0021 (policy over grounded evidence).
 
 ## Problem
 

@@ -1,4 +1,4 @@
-// Catalog sources. Witness always fetches facts itself by canonical product ID; it never uses the
+// Catalog sources. Second Key always fetches facts itself by canonical product ID; it never uses the
 // agent's description of a product.
 //
 // Channel3: GET https://api.trychannel3.com/v1/products/{id} with header x-api-key (Verified in

@@ -1,4 +1,4 @@
-# Deliverable 2: PayPal payment-flow comparison
+# PayPal payment-flow comparison (transfers)
 
 Sandbox runs on 2026-10-16/17. Raw results, with PayPal debug IDs:
 
@@ -10,7 +10,7 @@ Scripts are in `secondkey/spikes/s4/`.
 
 - **Payer:** the vaulted personal sandbox buyer.
 - **Intended recipient:** the new personal sandbox account (`SK_RECIPIENT_EMAIL`, not stored in reports).
-- **Platform:** the Witness sandbox merchant.
+- **Platform:** the Second Key sandbox merchant.
 
 **Bottom line.** With the access we have (a standard REST app, not a PayPal partner), the only flow that is proven end to end, and that can both hold the decision and reach the recipient, is the **platform-held authorization plus Payouts** (option B below). On approval the money goes to the platform first, then to the recipient. That is not a P2P transfer and must not be presented as one. Multiparty flows that would pay the recipient directly while the platform controls authorize/void/capture **require PayPal partner approval**; the sandbox refused them (F1, F2, F4). Paying the recipient directly without partner status works for *completing* a payment but not for *cancelling* it (A2: void 403), so it can't carry a "Don't send" decision.
 

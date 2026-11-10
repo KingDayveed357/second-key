@@ -1,16 +1,14 @@
 # 0002: Build the human-not-present design
 
-> The product was called **Witness** when this was written and is now **Second Key**. The decision is unchanged unless a later ADR says otherwise.
-
 Status: **Accepted** (Dave, "proceed", 2026-10-11) · Context: Checkpoint 1
 
 ## Context
 
-BRIEF's decision rule depended on Gate 2 (authorization with a saved wallet, buyer absent). Stage 1 passed Gates 0–3. Gates 2 and 3 passed twice, including a cart swap with no buyer present (`docs/spike-results.md`). Gate 4 was blocked by the spike's method (the dispute-create API isn't documented), not by a gap in the design.
+The original brief's decision rule depended on Gate 2 (authorization with a saved wallet, buyer absent). Stage 1 passed Gates 0–3. Gates 2 and 3 passed twice, including a cart swap with no buyer present (`docs/spike-results.md`). Gate 4 was blocked by the spike's method (the dispute-create API isn't documented), not by a gap in the design.
 
 ## Options
 
-1. Human-not-present: authorize with `vault_id`; Witness decides capture/hold/void.
+1. Human-not-present: authorize with `vault_id`; Second Key decides capture/hold/void.
 2. Buyer approval on every order (the fallback if Gate 2 had failed).
 3. Both, with human-present as an optional path.
 

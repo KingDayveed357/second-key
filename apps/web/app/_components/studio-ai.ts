@@ -96,7 +96,7 @@ function makeHarness(o: { prefix: string; name: string; context: string; analyst
 }
 
 export const witnessHarness = makeHarness({
-  prefix: "witness",
+  prefix: "operator",
   name: "Second Key (operator)",
   context: WITNESS_CONTEXT,
   analystDescription:

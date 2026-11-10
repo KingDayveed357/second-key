@@ -62,7 +62,7 @@ export function assertTransition(from: PurchaseState, to: PurchaseState): void {
 
 export const isTerminal = (s: PurchaseState) => T[s].length === 0;
 
-/** States in which PayPal may hold funds for this purchase that Witness must eventually settle. */
+/** States in which PayPal may hold funds for this purchase that Second Key must eventually settle. */
 export const OPEN_AUTHORIZATION_STATES: readonly PurchaseState[] = [
   "AUTHORIZING",
   "VERIFYING",

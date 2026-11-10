@@ -1,4 +1,4 @@
-// Spike 01: can we get a sandbox token, and does the app have the scopes Witness needs?
+// Spike 01: can we get a sandbox token, and does the app have the scopes Second Key needs?
 
 import { getAccessToken, tokenScopes, BASE_URL } from "./lib/paypal.mjs";
 

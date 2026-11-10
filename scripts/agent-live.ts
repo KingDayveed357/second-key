@@ -1,6 +1,6 @@
-// LIVE reference-agent run against a local Witness API (real Haiku, real Channel3, PayPal sandbox).
+// LIVE reference-agent run against a local Second Key API (real Haiku, real Channel3, PayPal sandbox).
 // 1. Shopper text -> live intent compiler -> shopper confirms (filling any gaps explicitly).
-// 2. The reference agent shops via Witness's API only.
+// 2. The reference agent shops via Second Key's API only.
 // 3. Cleanup: revoke the intent so any held authorization is voided. Reports PayPal's own state.
 // Agent spend cap: WITNESS_AGENT_MAX_SPEND_USD (default $0.05).
 
@@ -11,7 +11,7 @@ import { runAgent } from "../apps/agent/src/agent.ts";
 
 loadDotEnv();
 const BASE = process.env.WITNESS_API ?? "http://127.0.0.1:4000";
-const keys = JSON.parse(readFileSync(process.env.WITNESS_KEYS_FILE ?? join(ROOT, ".witness", "dev-keys.json"), "utf8"));
+const keys = JSON.parse(readFileSync(process.env.WITNESS_KEYS_FILE ?? join(ROOT, ".secondkey", "dev-keys.json"), "utf8"));
 const call = async (method: string, path: string, key: string, body?: unknown) => {
   const r = await fetch(`${BASE}${path}`, { method, headers: { authorization: `Bearer ${key}`, ...(body ? { "content-type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
   const t = await r.text();
@@ -38,7 +38,7 @@ const run = await runAgent({
 console.log(`\nAGENT SAID:\n${run.text}\n`);
 console.log(`agent: turns=${run.turns} usage=${JSON.stringify(run.usage)} estimated_cost_usd=${run.estimated_cost_usd} stopped_for_budget=${run.stopped_for_budget}`);
 
-// What did Witness actually do? (ops view of the purchases on this intent)
+// What did Second Key actually do? (ops view of the purchases on this intent)
 const ledger = await call("GET", `/v1/intents/${draft.json.id}`, keys.shopper);
 void ledger;
 await call("POST", `/v1/intents/${draft.json.id}/revoke`, keys.shopper);

@@ -2,7 +2,7 @@
 
 Date: 2026-10-11 · App: standard REST app (Merchant), US Business payee `7L6D422CPFA9Q`, US Personal buyer · Host checked: `https://api-m.sandbox.paypal.com` (exact-host guard in `spikes/lib/paypal.mjs`)
 
-Evidence: every request and response is in `witness/spikes/out/` (gitignored, kept locally). File names below are relative to that folder. Authorization headers are redacted in every file.
+Evidence: every request and response is in `spikes/out/` (gitignored, kept locally). File names below are relative to that folder. Authorization headers are redacted in every file.
 
 Labels: **Verified** = PayPal's response or official docs (linked) · **Inference** = my reading, not tested · **Unknown** = needs a test.
 
@@ -38,7 +38,7 @@ Run 2026-10-11 14:08–14:13Z (buyer approved both orders in the browser, ~4.5 m
 | Void B | 204 → authorization `VOIDED` | `…-85-…`, `…-86-get-authorization.json` |
 | Capture the voided B | **422 `AUTHORIZATION_VOIDED`** (debug `f7222525e546c`) | `…-87-capture-authorization.json` |
 
-Note: the *order* reads `COMPLETED` straight after `/authorize`, before any money moves. Witness must read the **authorization and capture** statuses, never the order status, to decide whether funds were captured. **Verified** by the responses above.
+Note: the *order* reads `COMPLETED` straight after `/authorize`, before any money moves. Second Key must read the **authorization and capture** statuses, never the order status, to decide whether funds were captured. **Verified** by the responses above.
 
 ## Gate 2: authorization with the buyer not present: PASS
 
@@ -46,11 +46,11 @@ Note: the *order* reads `COMPLETED` straight after `/authorize`, before any mone
 2. Order with `payment_source.paypal.vault_id` only, intent AUTHORIZE, **no buyer action**: 201, order `1M060119S54869011` `COMPLETED`, authorization `12H434938Y5759253` `CREATED` 84.00 USD, payer account `VERIFIED`. It was authorized in one call, with no separate `/authorize` step. Debug `f381589ba7f41`. File `…14-15-43-943Z-28-vault-authorize-order.json`. Voided afterwards (confirmed `VOIDED`).
 3. **Repeat run** with the saved wallet at 15:17Z: order `0LH226535G4030535`, authorization `5BC78283U2232712K` `CREATED`, then voided (confirmed `VOIDED`). File `…15-17-08-873Z-01-vault-authorize-order.json`.
 
-Limit we state openly: in production, vaulting needs a merchant eligibility review (BRIEF "Honest limits"). **Unknown:** how long that review takes and what it requires. That question is for PayPal, not the hackathon.
+Limit we state openly: in production, vaulting needs a merchant eligibility review (a stated limit). **Unknown:** how long that review takes and what it requires. That question is for PayPal, not the hackathon.
 
 ## Gate 3: cart swap caught on PayPal's record: PASS
 
-Witness approved `TRL-GRY-10` at 84.00. The order PayPal received holds `TRL-WHT-10` at 84.00, so price, budget and total all pass.
+Second Key approved `TRL-GRY-10` at 84.00. The order PayPal received holds `TRL-WHT-10` at 84.00, so price, budget and total all pass.
 
 | Run | Order / authorization | Three-way match result | After |
 |---|---|---|---|
@@ -69,7 +69,7 @@ Diagnosis:
 - **Verified:** the current Disputes v1 schema exposes only `GET` on `/v1/customer/disputes`; **there is no create operation** ([schema](https://developer.paypal.com/api/customer-disputes/v1/schema.json), [reference](https://developer.paypal.com/api/customer-disputes/v1/)). The spike calls an undocumented endpoint with a `PayPal-Auth-Assertion` header that impersonates the buyer.
 - **Inference:** the error comes from that assertion. Acting on behalf of another account needs partner/third-party permissions, which we are deliberately not using. So this is the spike's method, not an API gap for merchants. The merchant-side actions we need are documented: provide-evidence, plus the sandbox-only `require-evidence` and `adjudicate` ("Merchants can make this call in the sandbox to complete end-to-end dispute resolution testing").
 
-**To finish Gate 4 (needs you, about 5 minutes):** log in at https://www.sandbox.paypal.com as the **sandbox Personal buyer** → Activity → the $84.00 "Witness Demo Store" payment (capture `536404883W4495032`) → report a problem → item not received. Then tell me, and I'll run `spike:dispute -- list` and `next <id>` until it resolves. The evidence text no longer claims the intent is "signed" (fixed in `05-dispute.mjs`).
+**To finish Gate 4 (needs you, about 5 minutes):** log in at https://www.sandbox.paypal.com as the **sandbox Personal buyer** → Activity → the $84.00 "Second Key Demo Store" payment (capture `536404883W4495032`) → report a problem → item not received. Then tell me, and I'll run `spike:dispute -- list` and `next <id>` until it resolves. The evidence text no longer claims the intent is "signed" (fixed in `05-dispute.mjs`).
 
 **Unknown, needs a test:** how long sandbox dispute actions take to appear.
 
@@ -89,7 +89,7 @@ Diagnosis:
 | Up to 10 purchase units per order | **Verified** | Orders v2 schema |
 | Webhook event types available: `CHECKOUT.ORDER.APPROVED/COMPLETED/VOIDED`, `PAYMENT.AUTHORIZATION.CREATED/VOIDED`, `PAYMENT.CAPTURE.COMPLETED/PENDING/DECLINED/DENIED/REFUNDED/REVERSED`, `CUSTOMER.DISPUTE.CREATED/UPDATED/RESOLVED`, `VAULT.PAYMENT-TOKEN.*` | **Verified** (`GET /v1/notifications/webhooks-event-types`) | `…15-17-29-551Z-02-list-webhook-event-types.json` |
 | **Which events actually fire for each step** | **Verified on the Render deploy** (2026-10-12): a vault-authorized order sends `PAYMENT.AUTHORIZATION.CREATED`; capture sends `PAYMENT.CAPTURE.COMPLETED`; void sends `PAYMENT.AUTHORIZATION.VOIDED`. **No `CHECKOUT.ORDER.*` events arrived for vault orders** within 45 s (the buyer never approves in a browser, so plausibly none are sent; Inference). All 7 deliveries passed signature verification; 0 rejected | `docs/evidence/render-sandbox-run.md` |
-| Webhook timing and ordering | **Partly known**: deliveries arrived within the 45 s window (7 of an expected 8; the 8th was likely still in flight). Order is not guaranteed by PayPal, which is why Witness re-fetches state instead of trusting event order | same |
+| Webhook timing and ordering | **Partly known**: deliveries arrived within the 45 s window (7 of an expected 8; the 8th was likely still in flight). Order is not guaranteed by PayPal, which is why Second Key re-fetches state instead of trusting event order | same |
 | Sandbox dispute timings | **Unknown, needs a test** | Gate 4 |
 
 ## Changes made in Stage 1

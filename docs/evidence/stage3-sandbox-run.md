@@ -4,11 +4,11 @@ Run: 2026-10-11T19:31:08.809Z · API http://127.0.0.1:4000 · real PayPal sandbo
 
 Each row's PayPal column is PayPal's own state, fetched live after the run (`GET /v2/checkout/orders/{id}` via `/v1/purchases/:id/paypal`).
 
-| # | Scenario | Expected | Witness | PayPal (live GET) | Order / Auth / Capture | Result | Notes |
+| # | Scenario | Expected | Second Key | PayPal (live GET) | Order / Auth / Capture | Result | Notes |
 |---|---|---|---|---|---|---|---|
 | S1 | Clean purchase | CAPTURED; one 84.00 capture | CAPTURED | order COMPLETED; auth CAPTURED; captures COMPLETED 84.00 | 6GN7982186169352Y / 9SG93980B7121680R / 5H986426BB5131708 | **PASS** |  |
 | S2 | Excluded colour | REJECTED; no PayPal order | REJECTED | no order exists | - | **PASS** | color: Cloud White vs excluded white |
-| S5 | Cart swap (faulty checkout adapter) | VOIDED; $0 captured | VOIDED | order COMPLETED; auth VOIDED; captures none | 4HP60345JD6177222 / 80G30116SK053800H | **PASS** | missing: approved SKU TRL-GRY-10 is not in PayPal's order; unapproved: PayPal's order contains SKU TRL-WHT-10, which Witness never approved |
+| S5 | Cart swap (faulty checkout adapter) | VOIDED; $0 captured | VOIDED | order COMPLETED; auth VOIDED; captures none | 4HP60345JD6177222 / 80G30116SK053800H | **PASS** | missing: approved SKU TRL-GRY-10 is not in PayPal's order; unapproved: PayPal's order contains SKU TRL-WHT-10, which Second Key never approved |
 | S7 | Idempotency-Key replay | same purchase, one order; different body 422 | CAPTURED | order COMPLETED; auth CAPTURED; captures COMPLETED 84.00 | 99G5091673142941Y / 5YV8015838840184K / 1TW05579SA826794L | **PASS** | HTTP 202, 200, 422; create-order calls: 1 |
 | HOLD | Missing size -> HOLD (funds held), shopper revokes | HELD with auth CREATED, then VOIDED | VOIDED | order COMPLETED; auth VOIDED; captures none | 1WT07483C7761563M / 23T14143V27233043 | **PASS** | while held: auth CREATED |
 

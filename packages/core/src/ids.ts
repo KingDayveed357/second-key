@@ -15,7 +15,7 @@ export function uuidv5(name: string, namespace: string): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
-/** Fixed namespace for Witness-derived IDs. Changing it would change every request ID. */
+/** Fixed namespace for IDs Second Key derives. Changing it would change every request ID. */
 export const WITNESS_NAMESPACE = "1b4e28ba-2fa1-5d6e-9c3b-7a1f00c0ffee";
 
 export type MoneyOp = "create-order" | "capture" | "void" | "payout";

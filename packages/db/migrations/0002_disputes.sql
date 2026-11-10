@@ -1,5 +1,5 @@
--- Stage 5: disputes on Witness captures (ADR-0010). Extends the (so far unused) table from 0001
--- rather than replacing it. A buyer opens the dispute in PayPal; ops attaches it; Witness verifies it
+-- Stage 5: disputes on Second Key captures (ADR-0010). Extends the (so far unused) table from 0001
+-- rather than replacing it. A buyer opens the dispute in PayPal; ops attaches it; Second Key verifies it
 -- is against this tenant's capture; evidence is submitted only after a reviewer approves the text.
 -- `id` and `paypal_dispute_id` both hold PayPal's dispute_id. No money moves through this table.
 ALTER TABLE disputes

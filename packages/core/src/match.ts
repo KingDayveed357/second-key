@@ -1,4 +1,4 @@
-// The three-way match: what Witness approved vs what PayPal actually stored for the order.
+// The three-way match: what Second Key approved vs what PayPal actually stored for the order.
 // Every purchase unit, the payee, the amount and its breakdown, and every item are compared.
 // An empty result means an exact match. Anything unparseable is a difference, never a pass.
 
@@ -131,7 +131,7 @@ export function threeWayMatch(exp: MatchExpectation, raw: unknown): string[] {
     }
   }
   for (const sku of actual.keys()) {
-    if (!approved.has(sku)) diffs.push(`unapproved: PayPal's order contains SKU ${sku}, which Witness never approved`);
+    if (!approved.has(sku)) diffs.push(`unapproved: PayPal's order contains SKU ${sku}, which Second Key never approved`);
   }
   return diffs;
 }

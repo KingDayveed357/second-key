@@ -1,4 +1,4 @@
-// Deterministic screening: a cart against a confirmed policy, using facts Witness fetched itself.
+// Deterministic screening: a cart against a confirmed policy, using facts Second Key fetched itself.
 // Any fail -> REJECT (no PayPal call). Any unknown -> HOLD. Otherwise PROCEED to authorize.
 
 import { z } from "zod";

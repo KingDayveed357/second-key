@@ -1,4 +1,4 @@
-# Render Blueprint for Witness (ADR-0008). Sandbox only: PAYPAL_BASE_URL is fixed below and the
+# Render Blueprint for Second Key (ADR-0008). Sandbox only: PAYPAL_BASE_URL is fixed below and the
 # code refuses any other host. Secrets use `sync: false`, so Render asks for them once at creation
 # and they are never stored in this file. The worker has no port: it is the only service that can
 # move money (ADR-0005).

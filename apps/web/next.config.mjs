@@ -10,7 +10,7 @@ const nextConfig = {
   distDir: process.env.SK_NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   typescript: { ignoreBuildErrors: true },
-  // The old Witness judge page is the developer conformance suite now; keep its URL working.
+  // An early URL for the conformance suite; keep it working.
   async redirects() {
     return [
       { source: "/witness", destination: "/developers", permanent: false },

@@ -1,4 +1,4 @@
-// Allowlisted proxy to the Witness API (see lib/server/proxy.ts for the rules).
+// Allowlisted proxy to the Second Key API (see lib/server/proxy.ts for the rules).
 import { cookies, headers } from "next/headers";
 import { PAYER_COOKIE, allowCostly, apiBase, keyFor, match } from "../../../../lib/server/proxy";
 import { SESSION_COOKIE, validSession } from "../../../../lib/server/session";

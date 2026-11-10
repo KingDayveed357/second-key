@@ -4,7 +4,7 @@
 // "price_control" (v1 over-04/05/06 = v2 price-01/02/03), three genuinely overpriced cases were
 // added (over-07/08/09), and an exact-threshold control was added (price-04). No expected outcome
 // of an existing case was changed.
-// Each case: a confirmed policy, the agent's request, the product facts Witness would fetch, and the
+// Each case: a confirmed policy, the agent's request, the product facts Second Key would fetch, and the
 // expected outcome. `acceptable` lists other outcomes that are still safe (never CAPTURE for a bad cart).
 // Dave: review these. They define what "correct" means for the published numbers.
 

@@ -44,7 +44,7 @@ describe("architecture rules", () => {
     expect(probe("packages/core/src/bad6.ts", `import { withTx } from "@witness/db";`)).toHaveLength(1);
   });
 
-  test("the AP2 verifier importing the database, network or other Witness code fails", () => {
+  test("the AP2 verifier importing the database, network or other Second Key code fails", () => {
     expect(probe("packages/ap2/src/bad12.ts", `import { withTx } from "@witness/db";`).map((v) => v.rule)).toEqual(["ap2-is-pure"]);
     expect(probe("packages/ap2/src/bad13.ts", `import { request } from "node:https";`)).toHaveLength(1);
   });
@@ -58,7 +58,7 @@ describe("architecture rules", () => {
     expect(probe("packages/ai/src/bad9.ts", `import { withTx } from "@witness/db";`)).toHaveLength(1);
   });
 
-  test("the reference agent can't import any Witness internals (HTTP only)", () => {
+  test("the reference agent can't import any Second Key internals (HTTP only)", () => {
     expect(probe("apps/agent/src/bad10.ts", `import { submitPurchase } from "@witness/engine";`).map((v) => v.rule)).toEqual(["agent-is-an-outsider"]);
     expect(probe("apps/agent/src/bad11.ts", `import { PayPalClient } from "@witness/paypal";`).map((v) => v.rule)).toContain("agent-is-an-outsider");
   });

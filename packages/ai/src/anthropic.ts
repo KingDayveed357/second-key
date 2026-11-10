@@ -18,7 +18,7 @@ import { DEFAULT_MODEL, approvedModel, type ModelSpec } from "./models.ts";
 export interface AnthropicProviderOptions {
   apiKey?: string;
   model?: string;
-  /** Haiku 5.5 defaults to "medium"; Witness pins "low" (short structured classification). */
+  /** Haiku 5.5 defaults to "medium"; Second Key pins "low" (short structured classification). */
   effort?: "low" | "medium" | "high";
   timeoutMs?: number;
   maxRetries?: number;

@@ -12,8 +12,8 @@ import type { EngineDeps } from "./deps.ts";
 export function templateEvidence(v: EvidenceValues): string {
   return [
     `The shopper's recorded instruction was: "${v.intent_text}". It was confirmed by the shopper before purchase and is recorded with SHA-256 digest ${v.policy_digest} in a hash-chained audit log; it is not cryptographically signed.`,
-    `Before any money was captured, Witness checked the selected product against that instruction using product facts it fetched itself, and re-read PayPal's own order ${v.order_id} to confirm it contained exactly the approved item, quantity, price, currency and payee.`,
-    `All checks passed. Witness then captured exactly ${v.amount} ${v.currency} against authorization ${v.authorization_id} (capture ${v.capture_id}) at ${v.captured_at}, the amount the shopper's policy allowed.`,
+    `Before any money was captured, Second Key checked the selected product against that instruction using product facts it fetched itself, and re-read PayPal's own order ${v.order_id} to confirm it contained exactly the approved item, quantity, price, currency and payee.`,
+    `All checks passed. Second Key then captured exactly ${v.amount} ${v.currency} against authorization ${v.authorization_id} (capture ${v.capture_id}) at ${v.captured_at}, the amount the shopper's policy allowed.`,
   ].join(" ");
 }
 

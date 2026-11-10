@@ -126,7 +126,7 @@ export async function submitPurchase(d: EngineDeps, who: Principal, idempotencyK
   const existing = await findExisting();
   if (existing) return replay(existing);
 
-  // Facts are fetched by Witness, from the catalog, by canonical ID: never from the agent. A
+  // Facts are fetched by Second Key, from the catalog, by canonical ID: never from the agent. A
   // transfer has no catalog facts: its cart is derived from the intent the payer confirmed.
   const ids = req.kind === "transfer" ? [] : [...new Set(req.lines.map((l) => l.product_id))];
   const catalog = ids.length ? await d.catalog.getProducts(ids) : { facts: new Map() };

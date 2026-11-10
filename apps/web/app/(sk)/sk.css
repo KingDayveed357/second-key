@@ -1,5 +1,5 @@
-/* Second Key design system. Everything is scoped under .sk so the legacy Witness styles never leak in
-   or out. Tokens first; components after. See docs/secondkey/11-experience-blueprint.md §5. */
+/* Second Key design system. Everything is scoped under .sk so the operator console's older styles never leak in
+   or out. Tokens first; components after. */
 
 .sk {
   /* colour */

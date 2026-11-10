@@ -1,4 +1,4 @@
-// The browser's only door to the Witness API. NOT an open proxy: each forwarded route is listed
+// The browser's only door to the Second Key API. NOT an open proxy: each forwarded route is listed
 // below with the role whose API key is attached server-side. Keys never leave this process.
 //
 //   public  - no key (public API routes)

@@ -1,11 +1,11 @@
-# Deliverable 5: Reproducible end-to-end verification
+# Reproducible end-to-end verification
 
 ## Procedure
 
 **Prerequisites.**
 
 - `.env` holds the sandbox credentials (`PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_BASE_URL` = sandbox, `ANTHROPIC_API_KEY`). They are read from the environment only and never printed. The scripts refuse any non-sandbox PayPal host.
-- `.witness/dev-keys.json` holds local API keys (gitignored).
+- `.secondkey/dev-keys.json` holds local API keys (gitignored).
 - Windows, for the System.Speech transcription step.
 
 **Steps.**
@@ -30,7 +30,7 @@
 |---|---|---|
 | 1 | Suspicious human payment request | Synthetic call audio → on-device transcription (System.Speech) → `kind: "transfer"` request → `ai.manipulation` = unknown with quotes verbatim from the transcript → HELD |
 | 2 | Trusted-contact denial | One-time link (30 min, separate from the 72 h hold) → reviewer view shows amount, payee and quoted reasons → deny → `VOIDING` |
-| 3 | Independently verified PayPal state | While held: authorization CREATED, 0 captures. After deny: **direct** `GET /v2/payments/authorizations/{id}` with the script's own PayPal token (not via Witness) = VOIDED; Witness's proxy agrees. Order status is recorded but never used as proof |
+| 3 | Independently verified PayPal state | While held: authorization CREATED, 0 captures. After deny: **direct** `GET /v2/payments/authorizations/{id}` with the script's own PayPal token (not via Second Key) = VOIDED; Second Key's proxy agrees. Order status is recorded but never used as proof |
 | 4 | Benign payment / invoice | Manipulation check `pass` → **direct** GETs: authorization CAPTURED, capture COMPLETED, $1,800.00, exactly one capture |
 | 5 | AI shopping agent + malicious product instructions | `ai.injection` unknown → HELD → same link/deny/void path → direct GET VOIDED. Checkout swaps the item → three-way match → executor voids, never captures |
 | 6 | Failure handling and retry | Same Idempotency-Key → same payment, no second PayPal order. Retried deny → `replayed: true`. Opposite decision → 409. Audit hash chain valid. Model outage, invalid model output, expired links, races and kind-mismatch bypasses are covered by the DB tests (they can't be forced reliably against live services) |

@@ -83,7 +83,7 @@ async function ledger(d: EngineDeps, tenantId: string, limit: number, since?: Da
 
 /**
  * Aggregates for the console and the judge page. "Unauthorized captures" counts CAPTURED purchases
- * with no consumed single-use approval: the BRIEF's success metric, computed from the database
+ * with no consumed single-use approval: the product.s core success metric, computed from the database
  * rather than asserted.
  */
 export async function stats(d: EngineDeps, tenantId: string, since?: Date) {

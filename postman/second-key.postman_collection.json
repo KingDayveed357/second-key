@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Second Key API",
-    "description": "Second Key (formerly Witness): payment control for people and AI agents, and an AP2 delegated verifier, on the PayPal sandbox. Set baseUrl and the four role keys (from `pnpm db:seed`). Scenario folders create real sandbox orders. Requests run in order; later requests use ids saved by earlier ones.",
+    "description": "Second Key: payment control for people and AI agents, and an AP2 delegated verifier, on the PayPal sandbox. Set baseUrl and the four role keys (from `pnpm db:seed`). Scenario folders create real sandbox orders. Requests run in order; later requests use ids saved by earlier ones.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [

@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Second Key feasibility sprint: detector, evaluations and spikes (isolated from the Witness apps)",
+  "description": "Second Key feasibility sprint: detector, evaluations and spikes (isolated from the Second Key apps)",
   "dependencies": {
     "@anthropic-ai/sdk": "0.128.0",
     "@witness/ai": "workspace:*",

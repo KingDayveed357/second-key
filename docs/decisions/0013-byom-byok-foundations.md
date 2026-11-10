@@ -1,19 +1,17 @@
 # 0013: Foundations for Bring-Your-Own-Model (BYOM) and Bring-Your-Own-Key (BYOK)
 
-> The product was called **Witness** when this was written and is now **Second Key**. The decision is unchanged unless a later ADR says otherwise.
-
 Status: **Accepted as architectural direction only** (Dave, Checkpoint 4, 2026-10-12). The full BYOM/BYOK feature is **not** part of Stage 5.
 
 ## Context
 
-Witness will eventually serve several merchant-of-record platforms (tenants). Some will want to choose the model provider that judges their purchases (**BYOM**). Some will want to pay for model usage with their own provider account (**BYOK**). These are different features with different risks, and neither should be bolted on later by rewriting the screening engine.
+Second Key will eventually serve several merchant-of-record platforms (tenants). Some will want to choose the model provider that judges their purchases (**BYOM**). Some will want to pay for model usage with their own provider account (**BYOK**). These are different features with different risks, and neither should be bolted on later by rewriting the screening engine.
 
-Today Witness uses one operator-owned Anthropic key and one approved model (`claude-haiku-5-5`).
+Today Second Key uses one operator-owned Anthropic key and one approved model (`claude-haiku-5-5`).
 
 ## Definitions
 
-- **BYOM (bring your own model):** a tenant or the operator selects a provider and model **from Witness's allowlist**. Witness still owns the credentials and pays for usage, or bills it back. The risk is mainly quality and cost: every allowed model must pass the eval suite before it's allowlisted.
-- **BYOK (bring your own key):** a tenant supplies **their own provider API key** and bears that provider's usage cost. The risk is mainly security: Witness becomes the custodian of a third-party secret.
+- **BYOM (bring your own model):** a tenant or the operator selects a provider and model **from Second Key's allowlist**. Second Key still owns the credentials and pays for usage, or bills it back. The risk is mainly quality and cost: every allowed model must pass the eval suite before it's allowlisted.
+- **BYOK (bring your own key):** a tenant supplies **their own provider API key** and bears that provider's usage cost. The risk is mainly security: Second Key becomes the custodian of a third-party secret.
 
 They can be combined (a tenant brings a key for an allowlisted provider), but each needs its own controls.
 
@@ -29,7 +27,7 @@ They can be combined (a tenant brings a key for an allowlisted provider), but ea
 
 | Area | Requirement |
 |---|---|
-| Configuration | Tenant-scoped provider config: `{ tenant_id, provider, model, key_ref?, limits }`. The provider and model must be on Witness's allowlist; no arbitrary model IDs. |
+| Configuration | Tenant-scoped provider config: `{ tenant_id, provider, model, key_ref?, limits }`. The provider and model must be on Second Key's allowlist; no arbitrary model IDs. |
 | Endpoints | **No user-supplied base URLs.** Each provider's endpoint is fixed in code. This prevents SSRF and credential exfiltration to an attacker's server. |
 | Allowlisting | A model is added only after it passes eval suite 1 (zero false captures on injection and substitution) at the configured prompts. |
 | Key storage | Keys encrypted at rest with envelope encryption (KMS-managed key encryption key, per-tenant data keys), stored as `key_ref` only. Never returned to any client after creation; the UI shows only the last 4 characters. |
@@ -43,7 +41,7 @@ They can be combined (a tenant brings a key for an allowlisted provider), but ea
 ## Consequences
 
 - Adding a provider later means writing one class that implements `ModelProvider`, adding its models to the allowlist with pricing, and passing the evals. The engine doesn't change.
-- Witness does not claim BYOK support until key custody, encryption, rotation and per-tenant isolation are built and tested.
+- Second Key does not claim BYOK support until key custody, encryption, rotation and per-tenant isolation are built and tested.
 
 ## Acceptance (Dave, 2026-10-12)
 
@@ -56,4 +54,4 @@ They can be combined (a tenant brings a key for an allowlisted provider), but ea
 - `FakeProvider` remains for offline tests.
 - The allowlist, cost ceilings, fail-closed behaviour and separation from the payment executor stay as they are.
 
-**Not implemented:** tenant-specific configuration, key custody, encryption at rest, rotation, revocation, per-tenant quotas and tenant isolation. Witness must not be described as supporting BYOK or BYOM.
+**Not implemented:** tenant-specific configuration, key custody, encryption at rest, rotation, revocation, per-tenant quotas and tenant isolation. Second Key must not be described as supporting BYOK or BYOM.

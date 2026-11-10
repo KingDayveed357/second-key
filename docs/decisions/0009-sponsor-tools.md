@@ -1,14 +1,12 @@
 # 0009: Sponsor tools and prize focus
 
-> The product was called **Witness** when this was written and is now **Second Key**. The decision is unchanged unless a later ADR says otherwise.
-
 Status: **Accepted** (Dave, Checkpoint 2, 2026-10-11) 
 
 ## Context
 
 Rules §8 (**Verified**): *"A project can only win up to one (1) Grand Prize and one (1) Sponsor Prize OR one (1) Honorable Mention Prize and one (1) Sponsor Prize."* Spreading effort across several sponsor prizes buys at most one.
 
-| Tool | What the prize asks (Verified on sponsor pages) | Product value to Witness | Decision |
+| Tool | What the prize asks (Verified on sponsor pages) | Product value to Second Key | Decision |
 |---|---|---|---|
 | **AG Grid / AG Studio** | "Polish: custom widgets, theming, and layout tools … Studio Agent Framework: a custom agent talking to Studio's built-in agents, or a swapped-in harness." Prize $5k/$2k/$1k×3 | The ops console is a real product surface: ledger, HOLD queue, evidence chain | **Core. The one sponsor prize we target.** |
 | **Channel3** | Must call the API or MCP "as a meaningful part of the product experience" | Independent facts (`GET /v1/products/{id}`, free) and market price from offers across retailers; search for the reference agent | **Core**, for product reasons. Not targeting its prize. |

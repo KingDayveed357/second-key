@@ -7,7 +7,7 @@ import { z } from "zod";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-/** Load witness/.env for local development; real environments set variables directly. */
+/** Load the repo-root .env for local development; real environments set variables directly. */
 export function loadDotEnv(): void {
   const file = join(ROOT, ".env");
   if (existsSync(file)) process.loadEnvFile(file);

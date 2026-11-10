@@ -1,4 +1,4 @@
-// Spike 03 (THE gate): can Witness authorize a payment while the buyer is NOT present?
+// Spike 03 (THE gate): can Second Key authorize a payment while the buyer is NOT present?
 //
 // 1. Buyer saves their PayPal wallet once (setup token -> approve -> payment token).
 // 2. Create an order with intent AUTHORIZE using only the saved vault_id.
@@ -19,7 +19,7 @@ async function saveWallet() {
     body: {
       payment_source: {
         paypal: {
-          description: "Witness: let your shopping agent pay within the limits you sign",
+          description: "Second Key: let your shopping agent pay within the limits you sign",
           permit_multiple_payment_tokens: false,
           usage_pattern: "IMMEDIATE",
           usage_type: "MERCHANT",
@@ -27,7 +27,7 @@ async function saveWallet() {
           experience_context: {
             shipping_preference: "NO_SHIPPING",
             payment_method_preference: "IMMEDIATE_PAYMENT_REQUIRED",
-            brand_name: "Witness Demo Store",
+            brand_name: "Second Key Demo Store",
             locale: "en-US",
             return_url: RETURN_URL,
             cancel_url: CANCEL_URL,
@@ -80,7 +80,7 @@ if (auth) {
   console.log(`✔ Authorization ${auth.id}: ${auth.status} (order ${order.id} is ${order.status})`);
   await voidAuthorization(auth.id); // clean up so the hold doesn't linger
   console.log(`  Voided it again to release the hold.`);
-  console.log("\nGATE 2 (human-not-present authorization): PASS -> build Witness as designed.");
+  console.log("\nGATE 2 (human-not-present authorization): PASS -> build Second Key as designed.");
   process.exit(0);
 }
 

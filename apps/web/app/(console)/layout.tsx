@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 // The password-gated operator console (AG Studio), on its own chrome until it moves into the Desk.
 export default function ConsoleLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="witness">
+    <div className="console">
       <header className="top">
         <div className="wrap">
           <Link href="/" className="brand">Second Key · Operator console</Link>
