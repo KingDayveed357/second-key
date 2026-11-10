@@ -1,5 +1,7 @@
 # 0002: Build the human-not-present design
 
+> The product was called **Witness** when this was written and is now **Second Key**. The decision is unchanged unless a later ADR says otherwise.
+
 Status: **Accepted** (Dave, "proceed", 2026-10-11) · Context: Checkpoint 1
 
 ## Context

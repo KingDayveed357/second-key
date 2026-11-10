@@ -14,19 +14,12 @@ Second Key is a safety layer that wallets, marketplaces and AI-agent platforms b
    - In Sarah's window, open the request, see the exact payee, amount and quoted evidence, and decide. PayPal confirms the outcome.
    - A call from "the bank" asks for $450 to a "protected account". That's below Rose's rule, so only the evidence can pause it: the AI quotes the safe-account and install-this-app lines, and the payment waits for Sarah.
    - The contractor's invoice to someone Rose has paid before goes straight through.
-2. **[Agent demo](https://witness-web.onrender.com/agent), on real AP2 mandates.** Your browser plays Rose's device: a WebCrypto key generated there signs her AP2 open mandates (a Ridgeline trail runner, size 10, not white, up to $90). A scripted agent closes them, Second Key verifies them, and a conforming payment is bound to PayPal's own order. Five runs, and a ladder shows which check stopped each one:
-   - **it goes right:** every check passes and PayPal captures;
-   - **agent steered** to a $480 shoe: refused by AP2's own constraints (not listed, over the cap), before PayPal is called;
-   - **wrong colour:** the white shoe is on Rose's list, so AP2's checks accept it. Second Key's facts, fetched and signed by Second Key, say "Cloud White", and refuse it;
-   - **checkout swaps it:** the mandates conform, but PayPal's stored order holds another shoe, so it's voided before capture;
-   - **mandate reused:** the second use of the same mandate is refused by Second Key's ledger.
+2. **[Agent demo](https://witness-web.onrender.com/agent), on real products and real AP2 mandates.** Three sections, in this order.
 
-   Every receipt opens and verifies in the browser against the published key set.
-
-   **Then try it with real products** (same page, "Now try it with real products"):
+   **Try it with real products** (first on the page):
    1. Type what Rose wants, e.g. "a gold smartwatch under $150". Claude Haiku drafts the search, the colour rule and the budget; you see them and can change them before anything is signed.
    2. Channel3 returns real products from real retailers.
-   3. Rose's device signs an AP2 mandate: the agent's top results as her list, her rules as Second Key's constraint, her budget.
+   3. Your browser plays Rose's device: a WebCrypto key generated there signs an AP2 mandate with the agent's top results as her list, her rules as Second Key's constraint, and her budget.
    4. Let the agent (Haiku) choose, or make it buy any product you click. Second Key re-fetches that product from Channel3 by id, signs the facts it relies on, verifies, and settles on the PayPal sandbox.
 
    Each way an agent goes wrong has its own outcome:
@@ -35,15 +28,22 @@ Second Key is a safety layer that wallets, marketplaces and AI-agent platforms b
    - **a product off the list:** AP2's own constraints refuse it;
    - **the checkout sends PayPal a different real product:** voided at PayPal before capture;
    - **the agent hides Rose's list** by withholding its disclosures: the signature still verifies, but the list matches nothing, so it's refused. A verifier that reads an empty list as "anything" would accept this purchase.
+
+   **Try to beat Second Key** (advanced): Rose's mandate is fixed on the server; you control the product page her agent reads, the purchase it proposes (merchant, quantity) and the messages it receives. Seventeen prepared attacks fill the form (hidden instructions, a fake system message, a "pre-approved" upgrade, a lookalike merchant, a colour written with a Cyrillic letter, a hidden subscription, countdown pressure, and more), or write your own. The real rules and Claude decide; the page shows what changed, what was found and the decision, and says when a result isn't what we expected. Nothing is bought. The library and its results: [docs/submission/adversarial-scenarios.md](docs/submission/adversarial-scenarios.md).
+
+   **Replay the cases** (collapsed): the poisoned page, where the purchase waits for Rose, and five scripted AP2 runs, each stopped by a different check (steered to a $480 shoe, the white shoe AP2 alone accepts, the checkout swap, a reused mandate). Every receipt opens and verifies in the browser against the published key set.
 3. **[Protection Desk](https://witness-web.onrender.com/desk)** (AG Grid and AG Studio, no sign-in).
    - **Incidents:** every intervention in an AG Grid, with what the AI observed, which rule decided it, who decided it and what PayPal says as separate columns, and the audit chain verified per incident.
    - **Agent mandates · AP2:** every agent purchase under an AP2 mandate, one AG Grid row each, with the layers as columns: signatures and AP2 constraints (what any AP2 verifier checks), Second Key's facts and ledger, then PayPal's order and the money. A headline counts the purchases **AP2 alone would have said yes to**. Open a row for the reasons, the PayPal order and capture IDs, and receipts you can verify.
    - **Insights:** an AG Studio dashboard in Second Key's own theme (typography, palette, cards, scrollbars), reading top to bottom: headline numbers, then **Where agents were stopped**, a custom widget that shows every AP2 agent purchase by the layer that decided it and brackets what AP2 alone would have allowed. It reads Studio's own data engine, so filters apply, and clicking a layer cross-filters the whole dashboard. Then who decided paused payments, the pressure patterns, the custom proof-chain widget (AI → rule → person → PayPal, audit chain verified live) and both tables. On tablets and phones the layout stacks and the AI panel starts collapsed.
    - **Ask the Second Key agent:** a custom lead and analyst built on the Studio Agent Framework, working with Studio's built-in agents on Claude Haiku. Try "Who decided the paused payments?" or "What did AP2 alone miss?". It is read-only, with its own small spend cap.
-4. **[Developers](https://witness-web.onrender.com/developers).**
-   - **Run a test verification**, with no account and no key. Your browser signs sample AP2 mandates with a throwaway key, Second Key's real verifier checks them, and your browser verifies the signed receipts against `/.well-known/jwks.json`. Nothing is stored and PayPal isn't called.
-   - **Constraint templates as JSON:** one exact item, a monthly purchase with a budget, and a two-person rule.
-   - **A conformance suite** of eleven real sandbox payments, each checked against PayPal's own record and its audit chain. Among them is the **cart swap**: the agent's cart is right, but the order PayPal receives isn't, and Second Key voids it before capture.
+4. **[Developers](https://witness-web.onrender.com/developers):** an integration guide for wallets, marketplaces and agent platforms.
+   - **Quickstart:** from a confirmed intent to a captured sandbox payment in four steps, with curl, Node and Python samples, each paired with the real response it returned.
+   - **Guides** for protecting a transfer with a trusted contact, and for verifying AP2 mandates then settling on PayPal.
+   - **Reference:** keys and roles, decisions and states, errors (RFC 9457), idempotency, events, rate limits, versioning, and what Second Key does and doesn't guarantee.
+   - **Sandbox scenarios:** eleven named cases on the real sandbox, each checked against PayPal's own record and the audit chain. The cart swap is the case spend limits miss.
+   - **Try AP2 verification** with no account and no key; **mandate templates** as JSON.
+   - Contracts: [OpenAPI](docs/openapi.yaml) (57 paths), [Postman](postman/witness.postman_collection.json) (60 requests, generated by `pnpm postman:build`), [architecture](docs/architecture.md), [threat model](docs/threat-model.md).
 5. **[Try the analysis](https://witness-web.onrender.com/try)** on your own text. You see what the AI observed, with the exact words, kept separate from what the fixed policy does.
 
 ## How it works

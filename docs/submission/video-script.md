@@ -1,6 +1,6 @@
 # Demo video: script and shot list (target 2:50, limit 3:00)
 
-> **Two scripts exist; record one.** This one leads with AP2 (agentic-commerce depth). `demo-direction.md` follows the human attack → agent attack → decision boundary story. Choose before recording. Since 2026-11-09 the AP2 demo is the second section of `/agent`: open `/agent#ap2` for shots 2–6. Since 10 Nov shots 2–6 use the real-product panel (Channel3); the scripted Ridgeline runs above it remain as a fallback.
+> **Two scripts exist; record one.** This one leads with AP2 (agentic-commerce depth). `demo-direction.md` follows the human attack → agent attack → decision boundary story. Choose before recording. Since 10 Nov `/agent` opens with the real-product panel (shots 2–6); the scripted runs are under "Replay the cases" (`/agent#ap2`, `/agent#poisoned`) as a fallback.
 
 Recorded on the deployed app (https://witness-web.onrender.com) against the real PayPal sandbox. Trim waiting time, never results. Narration is about 255 words, which leaves room for the screen to speak. No music, or music you have a licence for; show no third-party logos except the partners' own product UI.
 
@@ -14,7 +14,7 @@ Recorded on the deployed app (https://witness-web.onrender.com) against the real
 | # | Time | Screen and action | Narration |
 |---|---|---|---|
 | 1 | 0:00–0:15 | `/` home. Hold on the hero, then scroll slowly to the two scenario cards (the $1,800 transfer and the $84 poisoned-page purchase). | "AI agents can now pay. Google's AP2 proves an agent was *allowed* to. It doesn't prove the agent bought what you meant, or that PayPal is about to charge for exactly that. Second Key does." |
-| 2 | 0:15–0:40 | `/agent#ap2`, scroll to **Now try it with real products**. Type "a gold smartwatch under $150", click **Draft the mandate**. Hold on *What Rose's device will sign* (the colour rule and budget) and the Channel3 product grid. | "Rose tells her agent: a gold smartwatch, under a hundred and fifty dollars. Haiku drafts the rules, she can check them, and the agent finds real products through Channel3." |
+| 2 | 0:15–0:40 | `/agent`, click **Try it with real products ↓** (the first section). Type "a gold smartwatch under $150", click **Draft the mandate**. Hold on *What Rose's device will sign* (the colour rule and budget) and the Channel3 product grid. | "Rose tells her agent: a gold smartwatch, under a hundred and fifty dollars. Haiku drafts the rules, she can check them, and the agent finds real products through Channel3." |
 | 3 | 0:40–1:00 | Click **Let the agent choose**. Show the ladder going green and *PayPal's order: Passed … captured*. | "Her device signs the mandate. The agent picks a gold watch, Second Key re-checks it against Channel3 itself, and PayPal captures." |
 | 4 | 1:00–1:25 | On a listed product whose badge isn't gold (e.g. Rose Gold or Cream), click **Make the agent buy this**. Zoom on *AP2 constraints: Passed* next to *Second Key's facts: Stopped it*. | "Now the agent buys one from the same list that isn't gold. Every AP2 check passes. Second Key's signed product facts say otherwise, and nothing is paid." |
 | 5 | 1:25–1:42 | Click **Checkout swaps the product**. Wait for *PayPal's order: Stopped it*. | "Here the checkout sends PayPal a different product. Second Key reads PayPal's own order before capture and voids it." |

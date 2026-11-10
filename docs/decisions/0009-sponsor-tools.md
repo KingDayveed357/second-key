@@ -1,5 +1,7 @@
 # 0009: Sponsor tools and prize focus
 
+> The product was called **Witness** when this was written and is now **Second Key**. The decision is unchanged unless a later ADR says otherwise.
+
 Status: **Accepted** (Dave, Checkpoint 2, 2026-10-11) 
 
 ## Context

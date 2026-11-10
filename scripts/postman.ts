@@ -56,7 +56,7 @@ const settled = (name: string, states: string[]): Req => ({
   test: [status(200), `pm.test("state", () => pm.expect(pm.response.json().state).to.be.oneOf(${JSON.stringify(states)}));`],
 });
 
-const folders: { name: string; items: Req[] }[] = [
+const folders: { name: string; description?: string; items: Req[] }[] = [
   {
     name: "Health",
     items: [
@@ -109,18 +109,27 @@ const folders: { name: string; items: Req[] }[] = [
     ],
   },
   {
-    name: "Shopper: intents and the HOLD decision",
+    name: "Shopper: intents and the payer's own review",
+    description:
+      "A hold on the payer's own agent purchase is reviewed by the payer. The review credential is shown once, travels in the URL fragment or a POST body (never a query string), and decides once (ADR-0020). Holds that wait for a trusted contact refuse hold-link with 409: their credential goes only to the contact's own channel.",
     items: [
       { name: "Create a structured intent (draft)", method: "POST", path: "/v1/intents", auth: "shopper", body: { policy, source_text: "Trail-running shoes, size 10, under $90, not white" }, test: [status(201), `const j = pm.response.json();`, `pm.test("draft", () => pm.expect(j.status).to.eql("DRAFT"));`, save("intentId", "j.id")] },
       { name: "Agent can't read an unconfirmed intent", method: "GET", path: "/v1/intents/{{intentId}}/summary", auth: "agent", test: [status(404)] },
       { name: "Confirm the intent", method: "POST", path: "/v1/intents/{{intentId}}/confirm", auth: "shopper", test: [status(200), `pm.test("confirmed", () => pm.expect(pm.response.json().status).to.eql("CONFIRMED"));`] },
       { name: "Agent reads the confirmed intent", method: "GET", path: "/v1/intents/{{intentId}}/summary", auth: "agent", test: [status(200)] },
       { name: "Receipts", method: "GET", path: "/v1/me/purchases", auth: "shopper", test: [status(200), `pm.test("list", () => pm.expect(pm.response.json().purchases).to.be.an("array"));`] },
-      { name: "One-time HOLD link for the held scenario", method: "POST", path: "/v1/purchases/{{p_hold}}/hold-link", auth: "shopper", test: [status(200), save("holdToken", "pm.response.json().token")] },
-      { name: "Open the hold with the token (no API key)", method: "GET", path: "/v1/holds/{{p_hold}}?t={{holdToken}}", auth: null, test: [status(200), `pm.test("held", () => pm.expect(pm.response.json().state).to.eql("HELD"));`] },
-      { name: "A wrong token is refused", method: "POST", path: "/v1/holds/{{p_hold}}/approve", auth: null, body: { token: "x".repeat(32) }, test: [status(403)] },
-      { name: "Deny the hold (releases the authorization)", method: "POST", path: "/v1/holds/{{p_hold}}/deny", auth: null, body: { token: "{{holdToken}}" }, test: [status(200)] },
-      { name: "The link is single-use", method: "POST", path: "/v1/holds/{{p_hold}}/approve", auth: null, body: { token: "{{holdToken}}" }, test: [status(409, 410)] },
+      {
+        name: "One-time review credential for the held scenario (payer's own agent)",
+        method: "POST",
+        path: "/v1/purchases/{{p_hold}}/hold-link",
+        auth: "shopper",
+        test: [status(200), `pm.test("credential only in the fragment", () => pm.expect(pm.response.json().path).to.match(/#k=/));`, save("holdToken", "pm.response.json().token")],
+      },
+      { name: "View the hold with the credential in the body (no API key)", method: "POST", path: "/v1/holds/{{p_hold}}/view", auth: null, body: { token: "{{holdToken}}" }, test: [status(200), `pm.test("held", () => pm.expect(pm.response.json().state).to.eql("HELD"));`] },
+      { name: "A credential in the URL is not accepted", method: "GET", path: "/v1/holds/{{p_hold}}?t={{holdToken}}", auth: null, test: [status(401)] },
+      { name: "A wrong credential is refused", method: "POST", path: "/v1/holds/{{p_hold}}/approve", auth: null, body: { token: "x".repeat(43) }, test: [status(403)] },
+      { name: "Deny the hold (releases the authorization)", method: "POST", path: "/v1/holds/{{p_hold}}/deny", auth: null, body: { token: "{{holdToken}}" }, test: [status(200), `pm.test("voiding", () => pm.expect(pm.response.json().state).to.be.oneOf(["VOIDING", "VOIDED"]));`] },
+      { name: "It decides once", method: "POST", path: "/v1/holds/{{p_hold}}/approve", auth: null, body: { token: "{{holdToken}}" }, test: [status(409, 410)] },
       { name: "Revoke the intent", method: "POST", path: "/v1/intents/{{intentId}}/revoke", auth: "shopper", test: [status(200), `pm.test("revoked", () => pm.expect(pm.response.json().status).to.eql("REVOKED"));`] },
     ],
   },
@@ -164,6 +173,29 @@ const folders: { name: string; items: Req[] }[] = [
     ],
   },
   {
+    name: "AP2 (delegated verifier)",
+    description:
+      "Second Key as an AP2 v0.2 delegated verifier (ADR-0023). Public, read-only requests; signing mandates needs a key, so use the Developers page's test verification for a full run.",
+    items: [
+      {
+        name: "Receipt key set (JWKS)",
+        method: "GET",
+        path: "/.well-known/jwks.json",
+        auth: null,
+        test: [status(200), `pm.test("ES256 P-256 keys with kid, no private part", () => { const k = pm.response.json().keys; pm.expect(k.length).to.be.above(0); k.forEach((x) => { pm.expect(x.kty).to.eql("EC"); pm.expect(x.crv).to.eql("P-256"); pm.expect(x.kid).to.be.a("string"); pm.expect(x).to.not.have.property("d"); }); });`],
+      },
+      { name: "Demo setup: the agent and merchant public keys", method: "GET", path: "/v1/demo/ap2/setup", auth: null, test: [status(200), `pm.test("public keys only", () => pm.expect(JSON.stringify(pm.response.json())).to.not.include('"d":'));`] },
+      {
+        name: "AP2 verifications in this demo session (Desk feed)",
+        method: "GET",
+        path: "/v1/demo/ap2/incidents?limit=50",
+        auth: "demo",
+        test: [status(200), `pm.test("one row per verification, with each layer", () => pm.response.json().verifications.forEach((r) => pm.expect(r.layers).to.include.keys("signatures", "ap2", "facts", "ledger", "paypal")));`],
+      },
+      { name: "A verification without the ap2:verify scope is refused", method: "POST", path: "/v2/verifications", auth: null, headers: { "Idempotency-Key": "postman-no-scope-1" }, body: {}, test: [status(401, 403)] },
+    ],
+  },
+  {
     name: "Cleanup: release held sandbox authorizations",
     items: (["overpriced", "injection"] as const).flatMap((n): Req[] => [
       { name: `Revoke the ${n} scenario's intent (voids its hold)`, method: "POST", path: `/v1/intents/{{i_${n}}}/revoke`, auth: "shopper", test: [status(200)] },
@@ -192,9 +224,9 @@ const item = (r: Req) => ({
 
 const collection = {
   info: {
-    name: "Witness API",
+    name: "Second Key API",
     description:
-      "Witness: intent verification and payment control for AI shopping agents, on the PayPal sandbox. Set baseUrl and the four role keys (from `pnpm db:seed`). Scenario folders create real sandbox orders. Requests run in order; later requests use ids saved by earlier ones.",
+      "Second Key (formerly Witness): payment control for people and AI agents, and an AP2 delegated verifier, on the PayPal sandbox. Set baseUrl and the four role keys (from `pnpm db:seed`). Scenario folders create real sandbox orders. Requests run in order; later requests use ids saved by earlier ones.",
     schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
   },
   event: [{ listen: "prerequest", script: { type: "text/javascript", exec: [`pm.collectionVariables.set("expiresAt", new Date(Date.now() + 7 * 86400000).toISOString());`] } }],
@@ -205,7 +237,7 @@ const collection = {
     { key: "opsKey", value: "" },
     { key: "demoKey", value: "" },
   ],
-  item: folders.map((f) => ({ name: f.name, item: f.items.map(item) })),
+  item: folders.map((f) => ({ name: f.name, ...(f.description ? { description: f.description } : {}), item: f.items.map(item) })),
 };
 
 mkdirSync(join(ROOT, "postman"), { recursive: true });

@@ -190,17 +190,7 @@ export function RealShop() {
     : "No attribute rule in this mandate.";
 
   return (
-    <section className="sk-card stack-lg" aria-labelledby="shop-h">
-      <header className="stack-sm">
-        <span className="sk-section-title">Real products · Channel3 · PayPal sandbox</span>
-        <h3 id="shop-h" style={{ fontSize: "var(--text-xl)" }}>
-          Now try it with real products
-        </h3>
-        <p className="small soft">
-          Say what Rose wants. The agent shops 100M+ real products through Channel3. Rose&apos;s device signs what she approved, and every purchase the agent attempts is checked against it before PayPal captures anything.
-        </p>
-      </header>
-
+    <div className="sk-card stack-lg">
       <form
         className="row"
         style={{ gap: 8, flexWrap: "wrap", alignItems: "end" }}
@@ -350,7 +340,7 @@ export function RealShop() {
         </div>
       )}
       {run && <Receipts view={run} settlement={settlement} />}
-    </section>
+    </div>
   );
 }
 

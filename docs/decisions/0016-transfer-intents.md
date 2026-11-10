@@ -1,5 +1,7 @@
 # 0016: Explicit shopping and transfer intents on one screening pipeline
 
+> The product was called **Witness** when this was written and is now **Second Key**. The decision is unchanged unless a later ADR says otherwise.
+
 Status: accepted for the hardening milestone (2026-10-17). Supersedes the sprint stopgap.
 
 ## Problem: where a transfer was treated as a product

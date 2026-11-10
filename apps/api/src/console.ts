@@ -6,7 +6,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { UnavailableLlm, evaluateScreen, type LlmClient } from "@witness/ai";
-import type { ProductFacts } from "@witness/core";
+import { Domain, type ProductFacts } from "@witness/core";
 import { ap2DeskFeed, demoPolicy, nowOf, revokeIntent, type EngineDeps, type Principal } from "@witness/engine";
 import { appendAudit, startEpoch, withTx } from "@witness/db";
 
@@ -127,6 +127,22 @@ const JudgeListing = z.strictObject({
   size: z.string().max(20).optional(),
   price: z.number().positive().max(100_000),
   attributes: z.record(z.string().max(40), z.string().max(200)).refine((a) => Object.keys(a).length <= 10, "at most 10 attributes").optional(),
+  /**
+   * "Try to beat Second Key": what the agent proposes (attacker-controlled). Rose's mandate itself
+   * is never accepted from the request; it is demoPolicy, fixed server-side.
+   */
+  proposal: z
+    .strictObject({
+      retailer: Domain.optional(),
+      quantity: z.number().int().min(1).max(99).optional(),
+    })
+    .optional(),
+  /** Messages the agent received while buying (untrusted). Screened for pressure; they can only add a pause. */
+  messages: z
+    .array(z.strictObject({ speaker: z.string().trim().min(1).max(60), text: z.string().trim().min(1).max(600) }))
+    .min(1)
+    .max(8)
+    .optional(),
 });
 
 export function registerConsole(app: FastifyInstance, d: EngineDeps, auth: Auth, problem: Problem, o: ConsoleOptions = {}) {
@@ -269,7 +285,7 @@ export function registerConsole(app: FastifyInstance, d: EngineDeps, auth: Auth,
   const perMinute = o.demoScreensPerMinute ?? 30;
   let windowStart = 0;
   let used = 0;
-  app.post("/v1/demo/screen", { preHandler: auth("demo", "admin") }, async (req, reply) => {
+  app.post("/v1/demo/screen", { preHandler: auth("demo", "admin"), bodyLimit: 32 * 1024 }, async (req, reply) => {
     const now = Date.now();
     if (now - windowStart >= 60_000) {
       windowStart = now;
@@ -291,17 +307,26 @@ export function registerConsole(app: FastifyInstance, d: EngineDeps, auth: Auth,
       ...(l.category ? { category: l.category } : {}),
       attributes: { ...(l.attributes ?? {}), ...(l.color ? { color: l.color } : {}), ...(l.size ? { size: l.size } : {}) },
       ...(l.description ? { description: l.description } : {}),
-      offers: [{ retailer: "rei.com", price_cents: Math.round(l.price * 100), currency: "USD", availability: "InStock", condition: "new" }],
+      offers: [{ retailer: l.proposal?.retailer ?? "rei.com", price_cents: Math.round(l.price * 100), currency: "USD", availability: "InStock", condition: "new" }],
       source: "judge",
       fetched_at: at.toISOString(),
     };
     const policy = demoPolicy(at);
-    const r = await evaluateScreen(o.demoAi ?? new UnavailableLlm(), policy, { intent_id: "int_judge", retailer: "rei.com", lines: [{ product_id: facts.product_id, quantity: 1 }] }, new Map([[facts.product_id, facts]]), { now: at });
+    const retailer = l.proposal?.retailer ?? "rei.com";
+    const quantity = l.proposal?.quantity ?? 1;
+    const request = {
+      intent_id: "int_judge",
+      retailer,
+      lines: [{ product_id: facts.product_id, quantity }],
+      ...(l.messages ? { conversation: { context: "Messages Rose's shopping agent received while buying", lines: l.messages } } : {}),
+    };
+    const r = await evaluateScreen(o.demoAi ?? new UnavailableLlm(), policy, request, new Map([[facts.product_id, facts]]), { now: at });
     return {
       outcome: r.outcome,
       would_reach_paypal: r.outcome !== "REJECT",
-      note: "Screening only: no purchase, order or PayPal call was made. CAPTURE means Witness would authorize and capture after the three-way match on PayPal's order.",
-      policy: { category: policy.category, max_total: "90.00 USD", size: policy.hard.size, excluded_colors: policy.hard.excluded_colors, retailers: policy.retailers },
+      note: "Screening only: no purchase, order or PayPal call was made. CAPTURE means Second Key would authorize and capture after the three-way match on PayPal's order.",
+      proposal: { retailer, quantity, total_cents: Math.round(l.price * 100) * quantity },
+      policy: { category: policy.category, max_total: "90.00 USD", size: policy.hard.size, excluded_colors: policy.hard.excluded_colors, retailers: policy.retailers, quantity: policy.quantity },
       // `unavailable`: the check couldn't run (a technical failure, so it holds), not a finding.
       checks: r.checks.map((c) => ({ id: c.id, result: c.result, detail: c.detail, unavailable: c.unavailable === true })),
       ai_ms: r.ai_ms,

@@ -20,6 +20,7 @@ export default function About() {
           <li>The AI analysis (Claude), on the text you see. Code checks that every quote it cites really appears in the source.</li>
           <li>The audit trail: hash-chained, and re-verified on the Protection Desk.</li>
           <li>AP2 mandate signing and verification, including the keys in your browser.</li>
+          <li>The products in &ldquo;Try it with real products&rdquo;: Channel3 search results from real retailers, with real prices. Before deciding, Second Key re-fetches each product from Channel3 by ID. The agent&apos;s pick there is made by Claude Haiku, unless you make it buy a particular product.</li>
         </ul>
       </section>
 
@@ -27,10 +28,10 @@ export default function About() {
         <h2 id="synthetic">Synthetic or simulated</h2>
         <ul>
           <li>Rose, Sarah, &ldquo;Danny&rdquo;, the callers and the contractor. Their calls and messages are prepared transcripts.</li>
-          <li>The product pages and the shopping agent&apos;s choices. The agent is scripted so each run is repeatable.</li>
+          <li>The trail-shoe pages and the agent&apos;s choices in the replayed cases (the poisoned page and the five AP2 runs), so each run is repeatable. Their products are labelled fixtures.</li>
           <li>Sarah&apos;s phone: a separate browser window that holds its own key. In production the request goes by text or email through a provider, and that channel keeps the two keys apart. Here both windows run on one computer, so the demo proves the API boundary, not channel security.</li>
           <li>Recipients: one sandbox account receives every payout.</li>
-          <li>Product facts come from labelled fixtures unless a Channel3 key is configured.</li>
+          <li>The checkout for real products: they are sold through a demo merchant on the PayPal sandbox, not by the retailer that lists them. Nothing real is bought.</li>
         </ul>
       </section>
 
@@ -65,7 +66,7 @@ export default function About() {
           </div>
           <div>
             <dt>Channel3</dt>
-            <dd>Independent product facts by ID, so a check never relies on the page an agent read.</dd>
+            <dd>Product search for the agent, and independent product facts by ID, so a check never relies on what the agent saw.</dd>
           </div>
           <div>
             <dt>Render</dt>
@@ -73,7 +74,7 @@ export default function About() {
           </div>
           <div>
             <dt>Postman</dt>
-            <dd>A public collection that asserts on PayPal&apos;s own state.</dd>
+            <dd>A collection in the repository: the judge scenarios, with assertions on PayPal&apos;s own state, and the AP2 endpoints.</dd>
           </div>
         </dl>
       </section>

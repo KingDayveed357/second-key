@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Witness API",
-    "description": "Witness: intent verification and payment control for AI shopping agents, on the PayPal sandbox. Set baseUrl and the four role keys (from `pnpm db:seed`). Scenario folders create real sandbox orders. Requests run in order; later requests use ids saved by earlier ones.",
+    "name": "Second Key API",
+    "description": "Second Key (formerly Witness): payment control for people and AI agents, and an AP2 delegated verifier, on the PayPal sandbox. Set baseUrl and the four role keys (from `pnpm db:seed`). Scenario folders create real sandbox orders. Requests run in order; later requests use ids saved by earlier ones.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -684,7 +684,8 @@
       ]
     },
     {
-      "name": "Shopper: intents and the HOLD decision",
+      "name": "Shopper: intents and the payer's own review",
+      "description": "A hold on the payer's own agent purchase is reviewed by the payer. The review credential is shown once, travels in the URL fragment or a POST body (never a query string), and decides once (ADR-0020). Holds that wait for a trusted contact refuse hold-link with 409: their credential goes only to the contact's own channel.",
       "item": [
         {
           "name": "Create a structured intent (draft)",
@@ -820,7 +821,7 @@
           }
         },
         {
-          "name": "One-time HOLD link for the held scenario",
+          "name": "One-time review credential for the held scenario (payer's own agent)",
           "event": [
             {
               "listen": "test",
@@ -828,6 +829,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "pm.test(\"credential only in the fragment\", () => pm.expect(pm.response.json().path).to.match(/#k=/));",
                   "pm.collectionVariables.set(\"holdToken\", pm.response.json().token);"
                 ]
               }
@@ -845,7 +847,7 @@
           }
         },
         {
-          "name": "Open the hold with the token (no API key)",
+          "name": "View the hold with the credential in the body (no API key)",
           "event": [
             {
               "listen": "test",
@@ -859,13 +861,41 @@
             }
           ],
           "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{holdToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/holds/{{p_hold}}/view"
+          }
+        },
+        {
+          "name": "A credential in the URL is not accepted",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.expect(pm.response.code).to.be.oneOf([401]));"
+                ]
+              }
+            }
+          ],
+          "request": {
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/v1/holds/{{p_hold}}?t={{holdToken}}"
           }
         },
         {
-          "name": "A wrong token is refused",
+          "name": "A wrong credential is refused",
           "event": [
             {
               "listen": "test",
@@ -887,7 +917,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"token\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\n}"
+              "raw": "{\n  \"token\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\n}"
             },
             "url": "{{baseUrl}}/v1/holds/{{p_hold}}/approve"
           }
@@ -900,7 +930,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"status 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                  "pm.test(\"status 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "pm.test(\"voiding\", () => pm.expect(pm.response.json().state).to.be.oneOf([\"VOIDING\", \"VOIDED\"]));"
                 ]
               }
             }
@@ -921,7 +952,7 @@
           }
         },
         {
-          "name": "The link is single-use",
+          "name": "It decides once",
           "event": [
             {
               "listen": "test",
@@ -1476,6 +1507,109 @@
               "raw": "{\n  \"title\": \"x\",\n  \"price\": 1,\n  \"payee\": \"attacker\"\n}"
             },
             "url": "{{baseUrl}}/v1/demo/screen"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AP2 (delegated verifier)",
+      "description": "Second Key as an AP2 v0.2 delegated verifier (ADR-0023). Public, read-only requests; signing mandates needs a key, so use the Developers page's test verification for a full run.",
+      "item": [
+        {
+          "name": "Receipt key set (JWKS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "pm.test(\"ES256 P-256 keys with kid, no private part\", () => { const k = pm.response.json().keys; pm.expect(k.length).to.be.above(0); k.forEach((x) => { pm.expect(x.kty).to.eql(\"EC\"); pm.expect(x.crv).to.eql(\"P-256\"); pm.expect(x.kid).to.be.a(\"string\"); pm.expect(x).to.not.have.property(\"d\"); }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/.well-known/jwks.json"
+          }
+        },
+        {
+          "name": "Demo setup: the agent and merchant public keys",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "pm.test(\"public keys only\", () => pm.expect(JSON.stringify(pm.response.json())).to.not.include('\"d\":'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/demo/ap2/setup"
+          }
+        },
+        {
+          "name": "AP2 verifications in this demo session (Desk feed)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "pm.test(\"one row per verification, with each layer\", () => pm.response.json().verifications.forEach((r) => pm.expect(r.layers).to.include.keys(\"signatures\", \"ap2\", \"facts\", \"ledger\", \"paypal\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{demoKey}}"
+              }
+            ],
+            "url": "{{baseUrl}}/v1/demo/ap2/incidents?limit=50"
+          }
+        },
+        {
+          "name": "A verification without the ap2:verify scope is refused",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401 or 403\", () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "postman-no-scope-1"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{baseUrl}}/v2/verifications"
           }
         }
       ]

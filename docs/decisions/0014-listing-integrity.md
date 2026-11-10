@@ -1,5 +1,7 @@
 # 0014: Listing integrity: look for listing text that contradicts the confirmed purchase
 
+> The product was called **Witness** when this was written and is now **Second Key**. The decision is unchanged unless a later ADR says otherwise.
+
 Status: **Implemented for Checkpoint 4 review** (remediation directed by Dave, 2026-10-12). Awaiting Dave's acceptance.
 
 ## Context

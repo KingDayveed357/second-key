@@ -1,5 +1,7 @@
 # 0022: AG Studio on the public Desk, with a capped public agent
 
+> The product was called **Witness** when this was written and is now **Second Key**. The decision is unchanged unless a later ADR says otherwise.
+
 Status: accepted (2026-11-02). Amends ADR-0015 §4 (the Studio agent required a console session).
 
 ## Problem

@@ -1,36 +1,53 @@
 openapi: 3.1.0
 info:
-  title: Second Key API (formerly Witness)
-  version: 0.3.0
+  title: Second Key API
+  version: 0.4.0
   description: |
-    Stage 5. Witness screens agent carts against a confirmed intent,
-    authorizes on PayPal (sandbox), and decides CAPTURE, HOLD, VOID or REJECT.
+    Second Key sits between a payment decision and PayPal. A person confirms an
+    intent (what an agent may buy, or exactly whom to pay and how much); your app
+    or agent submits the payment; Second Key screens it, has PayPal authorize it
+    (sandbox only), and decides CAPTURE, HOLD, VOID or REJECT. A held payment is
+    released only by the right person: the payer for their own agent's purchase,
+    their trusted contact for a transfer their rule paused (ADR-0020).
+
     There is deliberately no capture or void endpoint: money moves only in the
-    isolated executor, by consuming a single-use approval (docs/architecture.md §2).
+    isolated executor, by consuming a single-use approval (docs/architecture.md).
+    AP2 delegated verification lives under /v2 (ADR-0023).
+
+    Auth: Bearer API keys (wk_...), one role per key (see securitySchemes).
+    Errors: RFC 9457 problem documents with a trace_id. Request bodies are strict:
+    unknown fields are refused. Formerly named Witness; package names keep that name.
   license:
     name: MIT
 servers:
-  - url: https://witness-api.onrender.com/v1
-    description: Hosted demo (URL assigned at deploy)
   - url: http://localhost:4000/v1
+    description: Local stack against the PayPal sandbox (the hosted demo's API is private; its website proxies only the demo routes)
 security:
   - apiKey: []
 tags:
   - name: intents
+    description: What the person authorized. Shopping (category, budget, retailers, hard rules) or transfer (exact payee and amount, plus the payer's own review rule).
   - name: purchases
+    description: Payments submitted against a confirmed intent, and what PayPal recorded for them.
   - name: holds
+    description: Reviewing a held payment. The reviewer is decided when the hold is created; the payer can always cancel.
+  - name: protection
+    description: The payer's standing protection (ADR-0020), review threshold and trusted contact. Tightening applies at once; loosening waits 48 h.
   - name: webhooks
   - name: verify
+    description: Public re-verification of the hash-chained audit log.
   - name: console
+    description: Read-only operator views (ops role), plus dispute handling.
   - name: demo
+    description: Demo-only routes used by the hosted website. Not part of an integration.
   - name: ap2
     description: AP2 delegated verification, settlement binding and receipts (ADR-0023). These live under /v2 and the site root, not /v1.
 paths:
   /intents:
     post:
       tags: [intents]
-      summary: Compile free text into a DRAFT policy with ambiguities
-      security: [{ shopperSession: [] }]
+      summary: Create a DRAFT intent, from a structured policy or from free text (Claude drafts; the person confirms every field)
+      security: [{ apiKey: [shopper] }]
       requestBody:
         required: true
         content:
@@ -38,9 +55,13 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [text]
               properties:
-                text: { type: string, minLength: 3, maxLength: 1000 }
+                policy:
+                  oneOf:
+                    - { $ref: "#/components/schemas/PolicyV1" }
+                    - { $ref: "#/components/schemas/TransferPolicyV1" }
+                source_text: { type: string, maxLength: 1000, description: "The person's own words, kept with the intent" }
+                text: { type: string, minLength: 3, maxLength: 1000, description: "Free text instead of a policy; returns a draft with ambiguities to resolve" }
       responses:
         "201":
           description: Draft intent
@@ -51,7 +72,7 @@ paths:
   /intents/{intentId}:
     get:
       tags: [intents]
-      security: [{ shopperSession: [] }, { apiKey: [ops] }]
+      security: [{ apiKey: [shopper] }, { apiKey: [ops] }]
       parameters: [{ $ref: "#/components/parameters/intentId" }]
       responses:
         "200":
@@ -64,7 +85,7 @@ paths:
     post:
       tags: [intents]
       summary: Freeze the policy (answers to ambiguities included) as CONFIRMED vN
-      security: [{ shopperSession: [] }]
+      security: [{ apiKey: [shopper] }]
       parameters: [{ $ref: "#/components/parameters/intentId" }]
       requestBody:
         required: true
@@ -73,9 +94,12 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [policy]
               properties:
-                policy: { $ref: "#/components/schemas/PolicyV1" }
+                policy:
+                  description: "Optional: the reviewed policy, when the person changed the draft or resolved its ambiguities. Send {} to confirm the draft as it is."
+                  oneOf:
+                    - { $ref: "#/components/schemas/PolicyV1" }
+                    - { $ref: "#/components/schemas/TransferPolicyV1" }
       responses:
         "200":
           description: Confirmed intent with digest
@@ -87,7 +111,7 @@ paths:
     post:
       tags: [intents]
       summary: Revoke; open HOLDs on this intent are voided
-      security: [{ shopperSession: [] }]
+      security: [{ apiKey: [shopper] }]
       parameters: [{ $ref: "#/components/parameters/intentId" }]
       responses:
         "200":
@@ -98,23 +122,28 @@ paths:
   /purchases:
     post:
       tags: [purchases]
-      summary: Submit an agent cart for a confirmed intent
+      summary: Submit a payment against a confirmed intent (an agent's cart, or a transfer)
       description: |
-        Witness re-fetches product facts by canonical ID and never uses the agent's
+        Second Key re-fetches product facts by canonical ID and never uses the agent's
         description. Violations are REJECTED before any PayPal call. Otherwise the
-        order is created from the verified cart and authorized against the shopper's
-        saved wallet, then verified against PayPal's stored order.
+        order is created from the verified cart and authorized against the payer's
+        saved wallet, then verified against PayPal's stored order. Poll
+        GET /purchases/{purchaseId} for the final state (no outbound webhooks yet).
       security: [{ apiKey: [agent:purchase] }]
       parameters:
         - name: Idempotency-Key
           in: header
           required: true
-          schema: { type: string, minLength: 8, maxLength: 128 }
+          schema: { type: string, pattern: "^[A-Za-z0-9_.:-]{8,128}$" }
+          description: "Same key and body returns the original result (200); same key, different body is 422. Kept for good, per tenant."
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PurchaseRequest" }
+            schema:
+              oneOf:
+                - { $ref: "#/components/schemas/PurchaseRequest" }
+                - { $ref: "#/components/schemas/TransferRequest" }
       responses:
         "202":
           description: Accepted; state reflects the decision so far
@@ -136,7 +165,7 @@ paths:
     get:
       tags: [purchases]
       summary: Purchase status (agents see status and reasons only)
-      security: [{ apiKey: [agent:purchase] }, { shopperSession: [] }, { apiKey: [ops] }]
+      security: [{ apiKey: [agent:purchase] }, { apiKey: [shopper] }, { apiKey: [ops] }]
       parameters: [{ $ref: "#/components/parameters/purchaseId" }]
       responses:
         "200":
@@ -148,7 +177,7 @@ paths:
     get:
       tags: [purchases]
       summary: Checks, facts snapshot, PayPal IDs and chain proof
-      security: [{ shopperSession: [] }, { apiKey: [ops] }]
+      security: [{ apiKey: [shopper] }, { apiKey: [ops] }]
       parameters: [{ $ref: "#/components/parameters/purchaseId" }]
       responses:
         "200":
@@ -160,7 +189,7 @@ paths:
     get:
       tags: [purchases]
       summary: Live read-only proxy of PayPal's own order, authorization and capture status
-      security: [{ shopperSession: [] }, { apiKey: [ops] }, { apiKey: [demo] }]
+      security: [{ apiKey: [shopper] }, { apiKey: [ops] }, { apiKey: [demo] }]
       parameters: [{ $ref: "#/components/parameters/purchaseId" }]
       responses:
         "200":
@@ -177,8 +206,9 @@ paths:
   /holds/{purchaseId}/approve:
     post:
       tags: [holds]
-      summary: Shopper approves a held purchase (re-verified before capture)
-      security: [{ holdToken: [] }]
+      summary: The reviewer approves a held payment (PayPal's order is re-checked first)
+      security: []
+      description: "The reviewer's single-use credential goes in the body (never in a URL). It expires after 30 minutes, is replaced by a reminder, and locks after 10 wrong attempts. Only the assigned trusted contact can approve a guardian hold; the payer and admins get 403."
       parameters: [{ $ref: "#/components/parameters/purchaseId" }]
       requestBody:
         required: true
@@ -197,14 +227,15 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/PurchaseStatus" }
         "401": { $ref: "#/components/responses/Problem" }
-        "403": { description: "Token doesn't match this purchase's current link" }
+        "403": { description: "Not this hold's reviewer (for example the payer approving a guardian hold), or the credential doesn't match" }
         "409": { description: "The hold was already decided differently" }
-        "410": { description: "Link expired, or no link was issued" }
+        "410": { description: "Credential expired, replaced or locked" }
         "502": { description: "PayPal couldn't be reached to re-check the order; nothing changed" }
   /holds/{purchaseId}/deny:
     post:
       tags: [holds]
-      security: [{ holdToken: [] }]
+      security: []
+      description: "The reviewer's single-use credential goes in the body (never in a URL). It expires after 30 minutes, is replaced by a reminder, and locks after 10 wrong attempts. Only the assigned trusted contact can approve a guardian hold; the payer and admins get 403."
       parameters: [{ $ref: "#/components/parameters/purchaseId" }]
       requestBody:
         required: true
@@ -269,17 +300,18 @@ paths:
   /purchases/{purchaseId}/hold-link:
     post:
       tags: [holds]
-      summary: Issue the one-time link for a held purchase (shown once; only its hash is stored)
+      summary: Issue a one-time review credential for a hold the payer decides themselves (their own agent's purchase)
+      description: "Shown once; only its hash is stored. The returned path carries it in the URL fragment (/holds/{id}#k=...), which browsers never send to a server. Refused with 409 for holds that wait for the trusted contact: their credential goes only to their own channel (ADR-0020)."
       security: [{ apiKey: [shopper] }, { apiKey: [admin] }]
       parameters: [{ $ref: "#/components/parameters/purchaseId" }]
       responses:
-        "200": { description: "path, token, expires_at (the LINK's expiry: default 30 min, capped at the hold's auto_void_at)" }
+        "200": { description: "path, token, expires_at (default 30 min, capped at the hold's auto_void_at)" }
         "409": { $ref: "#/components/responses/Problem" }
   /holds/{purchaseId}:
     get:
       tags: [holds]
-      summary: View a held purchase (signed-in shopper, or the one-time token)
-      security: [{ apiKey: [shopper] }, { holdToken: [] }]
+      summary: View a held purchase (signed in). With a credential instead, use POST /holds/{purchaseId}/view.
+      security: [{ apiKey: [shopper] }]
       parameters: [{ $ref: "#/components/parameters/purchaseId" }]
       responses:
         "200": { description: "purchase_id, state, reasons, amount, items, retailer, auto_void_at (when the held money is released automatically), resolution, link_expires_at (when this link stops working; null when signed in)" }
@@ -613,11 +645,175 @@ paths:
         "201": { description: "{ mode, agent, verification, settlement, caught_by }" }
         "404": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
+  /holds/{purchaseId}/view:
+    post:
+      tags: [holds]
+      summary: View a held payment with the reviewer's credential
+      security: []
+      parameters: [{ $ref: "#/components/parameters/purchaseId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [token], properties: { token: { type: string } } }
+      responses:
+        "200": { description: "purchase_id, state, reasons, amount, payee or items, the quoted evidence, auto_void_at, and who may approve" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "410": { $ref: "#/components/responses/Problem" }
+  /me/protection:
+    get:
+      tags: [protection]
+      summary: The payer's standing protection (threshold, trusted contact, pending changes)
+      security: [{ apiKey: [shopper] }]
+      responses:
+        "200": { description: "threshold_cents, guardian, pending changes with apply_at" }
+  /me/protection/threshold:
+    post:
+      tags: [protection]
+      summary: Set the review threshold (lowering or setting one applies now; raising or removing it waits 48 h and the trusted contact is told)
+      security: [{ apiKey: [shopper] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [threshold_cents], properties: { threshold_cents: { type: [integer, "null"], minimum: 0, maximum: 10000000 } } }
+      responses:
+        "200": { description: The updated protection }
+        "422": { $ref: "#/components/responses/Problem" }
+  /me/guardians:
+    post:
+      tags: [protection]
+      summary: Invite a trusted contact (they accept through their own channel)
+      security: [{ apiKey: [shopper] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [display_name, address], properties: { display_name: { type: string, minLength: 1, maxLength: 40 }, address: { type: string, description: "Their channel address (in the demo, an inbox like SK-ABCD-EFGH)" } } }
+      responses:
+        "200": { description: The updated protection }
+        "422": { $ref: "#/components/responses/Problem" }
+  /me/protection/guardian:
+    post:
+      tags: [protection]
+      summary: Make an accepted contact the trusted contact (the first one applies now; replacing one waits 48 h)
+      security: [{ apiKey: [shopper] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [guardian_id], properties: { guardian_id: { type: string } } }
+      responses:
+        "200": { description: The updated protection }
+  /me/protection/guardian/remove:
+    post:
+      tags: [protection]
+      summary: Remove the trusted contact (waits 48 h; held payments stay held)
+      security: [{ apiKey: [shopper] }]
+      responses:
+        "200": { description: The updated protection }
+  /me/protection/guardian/revoke:
+    post:
+      tags: [protection]
+      summary: Emergency revocation (immediate, needs a reason; re-granting authority is still delayed)
+      security: [{ apiKey: [shopper] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 3, maxLength: 200 } } }
+      responses:
+        "200": { description: The updated protection }
+  /me/protection/changes/{changeId}/cancel:
+    post:
+      tags: [protection]
+      summary: Cancel a pending (delayed) change
+      security: [{ apiKey: [shopper] }]
+      parameters: [{ name: changeId, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: The updated protection }
+  /me/holds/{purchaseId}/cancel:
+    post:
+      tags: [holds]
+      summary: The payer cancels their own held payment (the authorization is voided)
+      security: [{ apiKey: [shopper] }]
+      parameters: [{ $ref: "#/components/parameters/purchaseId" }]
+      responses:
+        "200": { description: The hold, now resolved }
+  /me/holds/{purchaseId}/notify:
+    post:
+      tags: [holds]
+      summary: Remind the trusted contact (a new credential goes to their channel; the old one stops working)
+      security: [{ apiKey: [shopper] }]
+      parameters: [{ $ref: "#/components/parameters/purchaseId" }]
+      responses:
+        "200": { description: Reminder queued }
+  /me/purchases/{purchaseId}/context:
+    post:
+      tags: [purchases]
+      summary: The payer shares the conversation after a pause (screened for pressure; it can only keep the hold, never release it)
+      security: [{ apiKey: [shopper] }]
+      parameters: [{ $ref: "#/components/parameters/purchaseId" }]
+      responses:
+        "200": { description: The evidence found, with quotes checked against the shared text }
+  /holds/{purchaseId}/verification:
+    get:
+      tags: [holds]
+      summary: PayPal's own record of a held payment, read live (signed in), so a reviewer can check it without trusting Second Key
+      security: [{ apiKey: [shopper] }]
+      parameters: [{ $ref: "#/components/parameters/purchaseId" }]
+      responses:
+        "200": { description: "PayPal's order, authorization and capture as PayPal reports them now" }
+        "409": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [holds]
+      summary: The same, with the reviewer's credential in the body
+      security: []
+      parameters: [{ $ref: "#/components/parameters/purchaseId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [token], properties: { token: { type: string } } }
+      responses:
+        "200": { description: "PayPal's order, authorization and capture as PayPal reports them now" }
+        "401": { $ref: "#/components/responses/Problem" }
+  /me/purchases/{purchaseId}/feedback:
+    post:
+      tags: [purchases]
+      summary: The payer says a finding is wrong (recorded and shown to reviewers; it doesn't change the rules)
+      security: [{ apiKey: [shopper] }]
+      parameters: [{ $ref: "#/components/parameters/purchaseId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [quote, note], properties: { quote: { type: string, minLength: 1, maxLength: 300 }, note: { type: string, minLength: 1, maxLength: 500 } } }
+      responses:
+        "200": { description: Recorded }
+  /admin/payee-history:
+    post:
+      tags: [protection]
+      summary: Import a payee the payer is known to have paid (audited; admin only)
+      security: [{ apiKey: [admin] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [shopper_id, payee_id], properties: { shopper_id: { type: string }, payee_id: { type: string }, email: { type: string, format: email } } }
+      responses:
+        "200": { description: "{ imported: true }" }
+        "422": { $ref: "#/components/responses/Problem" }
 components:
   securitySchemes:
-    apiKey: { type: http, scheme: bearer, description: "Witness API key; scopes agent:purchase | ops | demo | admin" }
-    shopperSession: { type: apiKey, in: cookie, name: witness_session }
-    holdToken: { type: apiKey, in: query, name: t, description: "One-time reviewer token bound to one purchase. Valid for WITNESS_HOLD_LINK_TTL_MINUTES (default 30) and never past the hold's auto_void_at; re-issuing replaces it. It decides once: retrying the same decision returns the recorded result with replayed=true, the opposite decision returns 409, an expired token 410 (ADR-0017)." }
+    apiKey:
+      type: http
+      scheme: bearer
+      description: |
+        Second Key API key (wk_ followed by 32 characters), one tenant and one role per key, stored only as a SHA-256 hash.
+        Roles: shopper (one person's intents, protection and purchases), agent:purchase (submit and read its own purchases),
+        ap2:verify (/v2), ops (read-only tenant views, disputes), admin (all of the above, audited imports), demo (the hosted website only).
+        Keep keys server-side.
   parameters:
     intentId: { name: intentId, in: path, required: true, schema: { type: string } }
     purchaseId: { name: purchaseId, in: path, required: true, schema: { type: string } }
@@ -724,6 +920,38 @@ components:
                 properties:
                   speaker: { type: string, minLength: 1, maxLength: 80 }
                   text: { type: string, minLength: 1, maxLength: 1000 }
+    TransferPolicyV1:
+      type: object
+      additionalProperties: false
+      required: [version, kind, payee, amount_cents, currency, expires_at]
+      properties:
+        version: { const: 1 }
+        kind: { const: transfer }
+        payee:
+          type: object
+          additionalProperties: false
+          required: [id, name, first_payment]
+          properties:
+            id: { type: string, pattern: "^[A-Za-z0-9_.:-]{1,64}$" }
+            name: { type: string, minLength: 1, maxLength: 80 }
+            first_payment: { type: boolean, description: "True when the payer has never paid this payee. Second Key also checks its own payee history, which can only make this stricter." }
+            email: { type: string, format: email, description: "If set, an approved and captured transfer is paid out here, and only here" }
+        amount_cents: { type: integer, minimum: 1, maximum: 10000000 }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        purpose: { type: string, maxLength: 200 }
+        review_threshold_cents: { type: integer, description: "The payer's rule set in advance: first payments to someone new at or above this get a second look. The stricter of this and the standing profile applies." }
+        expires_at: { type: string, format: date-time }
+    TransferRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, intent_id, payee_id, amount_cents, currency]
+      properties:
+        kind: { const: transfer }
+        intent_id: { type: string }
+        payee_id: { type: string, description: "Must match the confirmed payee" }
+        amount_cents: { type: integer, minimum: 1, maximum: 10000000, description: "Must match the confirmed amount exactly" }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        conversation: { $ref: "#/components/schemas/PurchaseRequest/properties/conversation" }
     PurchaseStatus:
       type: object
       properties:
@@ -732,10 +960,20 @@ components:
           type: string
           enum: [SCREENING, REJECTED, AUTHORIZING, AUTH_FAILED, VERIFYING, HELD, CAPTURE_APPROVED, CAPTURING, CAPTURE_PENDING, NEEDS_RECONCILE, CAPTURED, CAPTURE_DECLINED, VOIDING, VOIDED, DISPUTED, DISPUTE_RESOLVED, REFUNDED]
         outcome: { type: string, enum: [REJECT, HOLD, CAPTURE, VOID] }
-        reasons: { type: array, items: { type: string } }
+        reasons: { type: array, items: { type: string }, description: "Each failing or pausing check, as check_id: detail" }
+        intent_id: { type: string }
+        retailer: { type: string }
         amount: { type: object, properties: { currency_code: { type: string }, value: { type: string } } }
-        paypal: { type: object, properties: { order_id: { type: string }, authorization_id: { type: string }, capture_id: { type: string } } }
+        created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
+      example:
+        id: pur_YKv0a0drZieikLZb
+        state: CAPTURED
+        outcome: CAPTURE
+        reasons: []
+        intent_id: int_SN6HRr14lVI0xBIV
+        retailer: rei.com
+        amount: { currency_code: USD, value: "84.00" }
     Evidence:
       type: object
       properties:

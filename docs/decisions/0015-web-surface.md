@@ -1,5 +1,7 @@
 # 0015: The web surface: a server-side key proxy, a closed-by-default console, and the Studio agent on Haiku
 
+> The product was called **Witness** when this was written and is now **Second Key**. The decision is unchanged unless a later ADR says otherwise.
+
 Status: **Implemented** (Stage 5, 2026-10-13)
 
 ## Context

@@ -1,5 +1,7 @@
 # 0013: Foundations for Bring-Your-Own-Model (BYOM) and Bring-Your-Own-Key (BYOK)
 
+> The product was called **Witness** when this was written and is now **Second Key**. The decision is unchanged unless a later ADR says otherwise.
+
 Status: **Accepted as architectural direction only** (Dave, Checkpoint 4, 2026-10-12). The full BYOM/BYOK feature is **not** part of Stage 5.
 
 ## Context

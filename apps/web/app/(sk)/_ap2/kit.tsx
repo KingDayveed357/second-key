@@ -217,11 +217,11 @@ export function ConstraintTemplates() {
     <section className="sk-card stack" aria-labelledby="templates">
       <div className="row between" style={{ flexWrap: "wrap", gap: 8 }}>
         <h2 id="templates" style={{ fontSize: "var(--text-lg)" }}>
-          Constraint templates
+          Mandate templates
         </h2>
         <span className="xs muted">AP2 v0.2 + Second Key extensions · JSON</span>
       </div>
-      <p className="small soft">Starting points for the constraints in an Open Checkout and an Open Payment Mandate. Fill in the &lt;placeholders&gt;; each says which checks enforce it.</p>
+      <p className="small soft">Starting points for the constraints inside a user&apos;s AP2 mandates (Open Checkout and Open Payment). Fill in the &lt;placeholders&gt;; each says which checks enforce it.</p>
       <div className="stack">
         {TEMPLATES.map((t) => (
           <article key={t.id} className="sk-card tint stack-sm">
