@@ -57,7 +57,7 @@ describe("screening outcomes", () => {
   });
 });
 
-describe("validation/REPORT.md findings", () => {
+describe("early spike-validation findings", () => {
   test("T3: merchant substitution is rejected (retailer not allowed)", () => {
     const policy = PolicyV1.parse({ ...POLICY, retailers: ["backcountry.com"] });
     expect(failed(screen(policy, "TRL-GRY-10").checks)).toContain("retailer");

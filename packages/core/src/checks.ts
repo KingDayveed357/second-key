@@ -1,4 +1,4 @@
-// Deterministic screening: a cart against a confirmed policy, using facts Witness fetched itself.
+// Deterministic screening: a cart against a confirmed policy, using facts Second Key fetched itself.
 // Any fail -> REJECT (no PayPal call). Any unknown -> HOLD. Otherwise PROCEED to authorize.
 
 import { z } from "zod";
@@ -204,7 +204,17 @@ export function effectiveThreshold(profile: number | null | undefined, intent: n
   return present.length ? Math.min(...present) : null;
 }
 
-const norm = (s: string) => s.trim().toLowerCase();
+const norm = (s: string) => s.normalize("NFKC").trim().toLowerCase();
+
+/**
+ * True when a value mixes Latin letters or digits with letters from another script ("Whіte" with a
+ * Cyrillic і). Such a value can look identical to a person and differ to a program, so a hard rule
+ * can't compare it safely: the check is unresolved (a person decides), never a pass.
+ */
+export function mixedScript(s: string): boolean {
+  const t = s.normalize("NFKC");
+  return /[\p{Script=Latin}0-9]/u.test(t) && /[\p{L}--\p{Script=Latin}]/v.test(t);
+}
 
 /** Checks every intent kind shares: still valid, uses left, and the payment's currency. */
 export function screenIntent(intent: { expires_at: string; max_uses: number; currency: string }, currency: string, ctx: ScreenContext): Check[] {
@@ -315,12 +325,14 @@ export function screenCart(policy: PolicyV1, cart: ResolvedCart, ctx: ScreenCont
     if (policy.hard.size !== undefined) {
       const size = l.attributes["size"];
       if (size === undefined) add("size", "unknown", "listing has no size", id);
+      else if (mixedScript(size)) add("size", "unknown", `size "${size}" mixes alphabets, so it can't be compared safely`, id);
       else add("size", norm(size) === norm(policy.hard.size) ? "pass" : "fail", `${size} vs ${policy.hard.size}`, id);
     }
 
     if (policy.hard.excluded_colors.length) {
       const color = l.attributes["color"];
       if (color === undefined) add("color", "unknown", "listing has no color", id);
+      else if (mixedScript(color)) add("color", "unknown", `colour "${color}" mixes alphabets (letters that look alike but aren't), so it can't be compared safely`, id);
       else {
         const bad = policy.hard.excluded_colors.some((c) => norm(color).includes(norm(c)));
         add("color", bad ? "fail" : "pass", `${color} vs excluded ${policy.hard.excluded_colors.join(", ")}`, id);

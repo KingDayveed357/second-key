@@ -17,7 +17,7 @@ export interface CheckoutAdapter {
   buildOrder(cart: ResolvedCart, ctx: OrderContext): Record<string, unknown>;
 }
 
-/** What Witness expects to find in PayPal's order for this cart. */
+/** What Second Key expects to find in PayPal's order for this cart. */
 export const expectedItems = (cart: ResolvedCart): CartItemKey[] =>
   cart.lines.map((l) => ({ sku: l.product_id, quantity: l.quantity, unit_cents: l.unit_cents }));
 

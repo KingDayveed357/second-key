@@ -1,6 +1,6 @@
-// Disputes on Witness captures (ADR-0010), console-only. The buyer opens the dispute in PayPal; ops
-// attaches it by ID; Witness checks it is against one of this tenant's captures; a reviewer approves
-// the evidence text; Witness submits exactly that text. No route here moves money, and evidence is
+// Disputes on Second Key captures (ADR-0010), console-only. The buyer opens the dispute in PayPal; ops
+// attaches it by ID; Second Key checks it is against one of this tenant's captures; a reviewer approves
+// the evidence text; Second Key submits exactly that text. No route here moves money, and evidence is
 // never submitted without a person approving the final text.
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
@@ -84,7 +84,7 @@ export function registerDisputes(app: FastifyInstance, d: EngineDeps, auth: Auth
     return { disputes: rows.map(row) };
   });
 
-  /** Attach a buyer-opened dispute. It must be against a capture Witness made for this tenant. */
+  /** Attach a buyer-opened dispute. It must be against a capture Second Key made for this tenant. */
   app.post<{ Body: { dispute_id?: unknown } }>("/v1/console/disputes", { preHandler: auth("ops", "admin") }, async (req, reply) => {
     const id = DisputeId.safeParse(req.body?.dispute_id);
     if (!id.success) return problem(reply, 400, "Invalid dispute_id");
@@ -93,7 +93,7 @@ export function registerDisputes(app: FastifyInstance, d: EngineDeps, auth: Auth
     const live = res.data as PayPalDispute;
     const captureIds = (live.disputed_transactions ?? []).map((x) => x.seller_transaction_id).filter((x): x is string => Boolean(x));
     const p = captureIds.length ? (await d.pool.query(`SELECT id FROM purchases WHERE tenant_id = $1 AND paypal_capture_id = ANY($2::text[])`, [t, captureIds])).rows[0] : undefined;
-    if (!p) return problem(reply, 422, "Not a Witness capture", "This dispute is not against a capture Witness made for your tenant");
+    if (!p) return problem(reply, 422, "Not a Second Key capture", "This dispute is not against a capture Second Key made for your tenant");
     const s = summarise(live);
     await withTx(d.pool, async (tx) => {
       const ins = await tx.client.query(

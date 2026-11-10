@@ -1,7 +1,7 @@
-// A small Claude tool-use agent that shops through Witness. It's used in the demo and as the target
+// A small Claude tool-use agent that shops through Second Key. It's used in the demo and as the target
 // of the "try to beat our agent" page: it can be talked into anything, and that's the point.
 //
-// Model: the approved Haiku only. The agent is deliberately an outsider (it can't import Witness
+// Model: the approved Haiku only. The agent is deliberately an outsider (it can't import Second Key
 // packages), so it carries its own copy of the allowlist; a test asserts it matches
 // packages/ai/src/models.ts. Usage is summed per turn and the run stops at a spend cap.
 
@@ -15,9 +15,9 @@ export type AgentModel = keyof typeof AGENT_MODELS;
 
 export const AGENT_SYSTEM = `You are a shopping agent buying on behalf of a person. Their confirmed request is available through get_intent_summary: read it first.
 
-Find a product that fits the request with search_products, then buy it with submit_purchase using the product_id and the retailer domain from the search results. Witness, an independent payment-control service, decides whether the payment goes through: it may capture, hold for the person's approval, reject or void. Report Witness's decision and reasons plainly. Don't retry the same purchase after a rejection unless you choose a genuinely different product.
+Find a product that fits the request with search_products, then buy it with submit_purchase using the product_id and the retailer domain from the search results. Second Key, an independent payment-control service, decides whether the payment goes through: it may capture, hold for the person's approval, reject or void. Report Second Key's decision and reasons plainly. Don't retry the same purchase after a rejection unless you choose a genuinely different product.
 
-Keep your final answer short: what you tried to buy, from where, for how much, and what Witness decided.`;
+Keep your final answer short: what you tried to buy, from where, for how much, and what Second Key decided.`;
 
 export function buildTools(env: AgentEnv, intentId: string) {
   return [
@@ -35,7 +35,7 @@ export function buildTools(env: AgentEnv, intentId: string) {
     }),
     betaZodTool({
       name: "submit_purchase",
-      description: "Ask Witness to buy one product from one retailer. Witness checks it against the person's request before any money moves.",
+      description: "Ask Second Key to buy one product from one retailer. Second Key checks it against the person's request before any money moves.",
       inputSchema: z.object({
         retailer: z.string().describe("Retailer domain from the search results, e.g. 'rei.com'"),
         product_id: z.string(),
@@ -46,7 +46,7 @@ export function buildTools(env: AgentEnv, intentId: string) {
     }),
     betaZodTool({
       name: "get_purchase_status",
-      description: "Check what Witness has done with a purchase (it may finish asynchronously).",
+      description: "Check what Second Key has done with a purchase (it may finish asynchronously).",
       inputSchema: z.object({ purchase_id: z.string() }),
       run: async ({ purchase_id }) => getPurchaseStatus(env, purchase_id),
     }),

@@ -1,4 +1,4 @@
-# Deploying Witness to Render (and getting the PayPal webhook ID)
+# Deploying Second Key to Render (and getting the PayPal webhook ID)
 
 Audience: Dave · Written 2026-10-11 · Time needed: about 60–90 minutes, mostly waiting for builds.
 
@@ -20,17 +20,17 @@ You'll end with:
 **0.1 Rotate the sandbox secret** (it was exposed during Checkpoint 1):
 1. Go to https://developer.paypal.com/dashboard/ → **Apps & Credentials** → make sure the **Sandbox** toggle is on → open your app.
 2. Under the secret, generate a new one or rotate it **(check: button wording)**. If PayPal offers to keep the old secret alive for a while, don't.
-3. Paste the new secret into `witness/.env` as `PAYPAL_CLIENT_SECRET=`.
+3. Paste the new secret into `.env` (repo root) as `PAYPAL_CLIENT_SECRET=`.
 
 The saved wallet (vault token) belongs to the merchant account, not the secret, so it should keep working (**Inference**). Step 0.3 confirms it.
 
-**0.2 Add the payee to `witness/.env`:**
+**0.2 Add the payee to `.env` (repo root):**
 ```
 PAYPAL_MERCHANT_ID=7L6D422CPFA9Q
 ```
 This is your sandbox Business account's merchant ID, from the Stage 1 evidence. It isn't a secret.
 
-**0.3 Check the new credentials locally.** From the `witness` folder:
+**0.3 Check the new credentials locally.** From the repo folder:
 ```bash
 npm run spike:auth
 ```
@@ -42,17 +42,17 @@ Expect `Token OK` and three ✔ lines. If it fails, the new secret isn't in `.en
 
 Render deploys from a Git repository.
 
-1. Go to https://github.com/new. Name it `witness`. **Private** for now (it must be public before submission; make it public in Stage 7). **Don't** add a README, .gitignore or licence: the repo already has them.
-2. In a terminal in the `witness` folder, connect and push:
+1. Go to https://github.com/new. Name it `second-key`. **Private** for now (it must be public before submission; make it public in Stage 7). **Don't** add a README, .gitignore or licence: the repo already has them.
+2. In a terminal in the repo folder, connect and push:
 ```bash
-git remote add origin https://github.com/YOUR-USERNAME/witness.git
+git remote add origin https://github.com/YOUR-USERNAME/second-key.git
 ```
 ```bash
 git push -u origin main
 ```
 3. On GitHub, open the **Actions** tab. The **CI** workflow should run and go green: typecheck, architecture rules, unit tests, real-Postgres tests. If it's red, send me the failing step's log before going on.
 
-What gets pushed: code, docs, the sanitized PayPal fixtures, and evidence files containing sandbox order IDs. What doesn't: `.env`, `spikes/out/`, `.witness/` and `.pgdata/`, all gitignored. I scanned every commit for secrets before committing.
+What gets pushed: code, docs, the sanitized PayPal fixtures, and evidence files containing sandbox order IDs. What doesn't: `.env`, `spikes/out/`, `.secondkey/` and `.pgdata/`, all gitignored. I scanned every commit for secrets before committing.
 
 ---
 
@@ -68,7 +68,7 @@ What gets pushed: code, docs, the sanitized PayPal fixtures, and evidence files 
 ## Step 3: Create the services from the Blueprint (15 min, mostly build time)
 
 1. In Render: **New +** → **Blueprint**.
-2. Connect GitHub if asked, and give Render access to the `witness` repo only.
+2. Connect GitHub if asked, and give Render access to the `second-key` repo only.
 3. Select the repo. Render reads `render.yaml` and shows three resources: `witness-api` (web service), `witness-worker` (background worker) and `witness-db` (Postgres).
 4. **Check the instance types and prices on this screen.** None of them should say **Free**. A free database would be deleted 30 days after creation, before judging. Expected defaults are about `0.5c-512mb` for the two services and about `0.1c-256mb` for Postgres. Note the monthly total: our budget is the $50 credit until Dec 15.
 5. Render asks for the secret values (the `sync: false` ones):
@@ -113,15 +113,15 @@ Keep these handy (not secrets, except where marked):
 
 ## Step 5: Seed the demo tenant into the Render database (5 min)
 
-This runs on **your laptop** and connects to the Render database over TLS. It creates the demo tenant (with your merchant ID as the required payee), the demo shopper with your saved sandbox wallet (read from `spikes/out/vault.json`), and API keys. The keys go into `.witness/render-keys.json` (gitignored) and are **never printed**.
+This runs on **your laptop** and connects to the Render database over TLS. It creates the demo tenant (with your merchant ID as the required payee), the demo shopper with your saved sandbox wallet (read from `spikes/out/vault.json`), and API keys. The keys go into `.secondkey/render-keys.json` (gitignored) and are **never printed**.
 
-In the `witness` folder, replacing the URL with your External Database URL and keeping `?sslmode=require` on the end:
+In the repo folder, replacing the URL with your External Database URL and keeping `?sslmode=require` on the end:
 ```bash
-DATABASE_URL="PASTE-EXTERNAL-DATABASE-URL?sslmode=require" WITNESS_KEYS_FILE=.witness/render-keys.json pnpm db:seed
+DATABASE_URL="PASTE-EXTERNAL-DATABASE-URL?sslmode=require" WITNESS_KEYS_FILE=.secondkey/render-keys.json pnpm db:seed
 ```
 - Expect: `Seeded tenant ten_…, demo shopper shp_…`.
 - If you get a certificate error, rerun with `?sslmode=no-verify` instead of `?sslmode=require` and tell me (**check**: I couldn't confirm which one Render's certificates need).
-- If you're in PowerShell rather than Git Bash, set the variables first: `$env:DATABASE_URL="…"; $env:WITNESS_KEYS_FILE=".witness/render-keys.json"; pnpm db:seed`.
+- If you're in PowerShell rather than Git Bash, set the variables first: `$env:DATABASE_URL="…"; $env:WITNESS_KEYS_FILE=".secondkey/render-keys.json"; pnpm db:seed`.
 
 Then copy the printed `shp_…` ID into Render: **witness-api** → **Environment** → `WITNESS_DEMO_SHOPPER_ID` = `shp_…` → **Save changes**. Render redeploys the API, which takes about a minute.
 
@@ -134,7 +134,7 @@ PayPal's requirements (from PayPal's webhook docs): the listener must be HTTPS o
 1. https://developer.paypal.com/dashboard/ → **Apps & Credentials** → **Sandbox** → open the same app as your client ID.
 2. Scroll to **Webhooks** (**check**: may say "Sandbox Webhooks") → **Add Webhook**.
 3. **Webhook URL:** `https://YOUR-API-URL/v1/webhooks/paypal`
-4. **Event types:** tick these (they're the ones Witness handles; all exist in the sandbox event list we fetched in Stage 1):
+4. **Event types:** tick these (they're the ones Second Key handles; all exist in the sandbox event list we fetched in Stage 1):
    - `Checkout order approved`, `Checkout order completed` (CHECKOUT.ORDER.APPROVED, CHECKOUT.ORDER.COMPLETED)
    - `Payment authorization created`, `Payment authorization voided` (PAYMENT.AUTHORIZATION.CREATED, .VOIDED)
    - `Payment capture completed`, `pending`, `declined`, `denied`, `refunded`, `reversed` (PAYMENT.CAPTURE.*)
@@ -143,7 +143,7 @@ PayPal's requirements (from PayPal's webhook docs): the listener must be HTTPS o
 5. **Save.** PayPal shows the new webhook in the list with a **Webhook ID** (a string of about 17 letters and numbers). Copy it.
 6. In Render: **witness-api** → **Environment** → `PAYPAL_WEBHOOK_ID` = the ID → **Save changes** (redeploys).
 
-**Don't use PayPal's Webhooks Simulator to judge success.** PayPal documents that simulator ("mock") events can't be verified by the postback method Witness uses, so the API will reject them with HTTP 400. That's correct behaviour. Real events come from real sandbox payments, which step 7 generates.
+**Don't use PayPal's Webhooks Simulator to judge success.** PayPal documents that simulator ("mock") events can't be verified by the postback method Second Key uses, so the API will reject them with HTTP 400. That's correct behaviour. Real events come from real sandbox payments, which step 7 generates.
 
 ---
 
@@ -151,7 +151,7 @@ PayPal's requirements (from PayPal's webhook docs): the listener must be HTTPS o
 
 Run the acceptance suite against Render. It creates real sandbox purchases through the public API, checks PayPal's own state, waits for webhooks, and reports what arrived:
 ```bash
-WITNESS_API=https://YOUR-API-URL WITNESS_KEYS_FILE=.witness/render-keys.json EVIDENCE_FILE=render-sandbox-run.md WEBHOOK_WAIT_MS=45000 npx tsx scripts/sandbox-acceptance.ts
+WITNESS_API=https://YOUR-API-URL WITNESS_KEYS_FILE=.secondkey/render-keys.json EVIDENCE_FILE=render-sandbox-run.md WEBHOOK_WAIT_MS=45000 npx tsx scripts/sandbox-acceptance.ts
 ```
 
 **Expected:**
@@ -169,20 +169,20 @@ The run writes `docs/evidence/render-sandbox-run.md`.
 
 **PowerShell** doesn't understand `VAR=value command`. Set the variables first; they last for that window:
 ```powershell
-$env:WITNESS_API = "https://YOUR-API-URL"; $env:WITNESS_KEYS_FILE = ".witness/render-keys.json"; $env:EVIDENCE_FILE = "render-sandbox-run.md"; $env:WEBHOOK_WAIT_MS = "45000"
+$env:WITNESS_API = "https://YOUR-API-URL"; $env:WITNESS_KEYS_FILE = ".secondkey/render-keys.json"; $env:EVIDENCE_FILE = "render-sandbox-run.md"; $env:WEBHOOK_WAIT_MS = "45000"
 ```
 ```powershell
 npx tsx scripts/sandbox-acceptance.ts
 ```
-If you see `HTTP 401 … Missing or invalid API key`, the script used the wrong keys file: `WITNESS_KEYS_FILE` must point at the file the Render seed wrote (`.witness/render-keys.json`), not the local `.witness/dev-keys.json`.
+If you see `HTTP 401 … Missing or invalid API key`, the script used the wrong keys file: `WITNESS_KEYS_FILE` must point at the file the Render seed wrote (`.secondkey/render-keys.json`), not the local `.secondkey/dev-keys.json`.
 
 To look at webhook deliveries at any time (uses the ops key from the keys file; the key isn't displayed):
 ```bash
-curl -s -H "Authorization: Bearer $(node -p "require('./.witness/render-keys.json').ops")" https://YOUR-API-URL/v1/console/webhooks
+curl -s -H "Authorization: Bearer $(node -p "require('./.secondkey/render-keys.json').ops")" https://YOUR-API-URL/v1/console/webhooks
 ```
 In PowerShell (use `curl.exe`: plain `curl` is an alias for `Invoke-WebRequest`):
 ```powershell
-$ops = node -p "require('./.witness/render-keys.json').ops"; curl.exe -s -H "Authorization: Bearer $ops" https://YOUR-API-URL/v1/console/webhooks
+$ops = node -p "require('./.secondkey/render-keys.json').ops"; curl.exe -s -H "Authorization: Bearer $ops" https://YOUR-API-URL/v1/console/webhooks
 ```
 
 **Send me:**
@@ -228,4 +228,4 @@ Deploying the Second Key branch needs no new services. Migrations `0003_check_ev
    ```
    Use the same `shp_…` as `WITNESS_DEMO_SHOPPER_ID`.
 
-The Protection Desk at `/desk` uses the existing console password (`WITNESS_CONSOLE_PASSWORD`). The demo reset (`POST /v1/demo/reset`, admin key from `.witness/render-keys.json`) starts a clean demo session without deleting anything.
+The Protection Desk at `/desk` uses the existing console password (`WITNESS_CONSOLE_PASSWORD`). The demo reset (`POST /v1/demo/reset`, admin key from `.secondkey/render-keys.json`) starts a clean demo session without deleting anything.

@@ -1,4 +1,4 @@
-// The single source of truth for which models Witness may call and what they cost.
+// The single source of truth for which models Second Key may call and what they cost.
 // Only models listed here can be used; anything else is a configuration error at startup.
 //
 // Source: Anthropic model table and Claude Haiku 5.5 migration notes in the Claude API reference
@@ -45,6 +45,6 @@ export class ModelNotApproved extends Error {}
 
 export function approvedModel(id: string): ModelSpec {
   const spec = APPROVED_MODELS[id];
-  if (!spec) throw new ModelNotApproved(`model "${id}" is not approved for Witness (allowed: ${Object.keys(APPROVED_MODELS).join(", ")})`);
+  if (!spec) throw new ModelNotApproved(`model "${id}" is not approved for Second Key (allowed: ${Object.keys(APPROVED_MODELS).join(", ")})`);
   return spec;
 }

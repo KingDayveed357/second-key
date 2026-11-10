@@ -1,6 +1,6 @@
 // End-to-end money pipeline on real Postgres + pg-boss with a stateful fake PayPal.
 // Covers the Stage 3 acceptance scenarios S1, S2, S5, S7, S8, S11 (evals.md) and the
-// validation/REPORT.md failures that need the whole system (T6-T10).
+// Early spike-validation failures that need the whole system (T6-T10).
 
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { and, eq } from "drizzle-orm";
@@ -83,7 +83,7 @@ describe("S5 cart swap", () => {
     expect(p.state).toBe("VOIDING");
     expect(p.reasons).toEqual([
       "missing: approved SKU TRL-GRY-10 is not in PayPal's order",
-      "unapproved: PayPal's order contains SKU TRL-WHT-10, which Witness never approved",
+      "unapproved: PayPal's order contains SKU TRL-WHT-10, which Second Key never approved",
     ]);
     await h.drain();
     expect((await state(p.id)).state).toBe("VOIDED");

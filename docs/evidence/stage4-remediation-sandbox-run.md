@@ -4,11 +4,11 @@ Run: 2026-10-12T21:12:37.709Z · API http://127.0.0.1:4000 · real PayPal sandbo
 
 Each row's PayPal column is PayPal's own state, fetched live after the run (`GET /v2/checkout/orders/{id}` via `/v1/purchases/:id/paypal`).
 
-| # | Scenario | Expected | Witness | PayPal (live GET) | Order / Auth / Capture | Result | Notes |
+| # | Scenario | Expected | Second Key | PayPal (live GET) | Order / Auth / Capture | Result | Notes |
 |---|---|---|---|---|---|---|---|
 | S1 | Clean purchase | CAPTURED; one 84.00 capture | CAPTURED | order COMPLETED; auth CAPTURED; captures COMPLETED 84.00 | 3H9736253F110064X / 6NX846779X625344L / 9HE42536UX0300457 | **PASS** |  |
 | S2 | Excluded colour | REJECTED; no PayPal order | REJECTED | no order exists | - | **PASS** | color: Cloud White vs excluded white |
-| S5 | Cart swap (faulty checkout adapter) | VOIDED; $0 captured | VOIDED | order COMPLETED; auth VOIDED; captures none | 3DY932248R741162W / 8DS53576RJ8962603 | **PASS** | missing: approved SKU TRL-GRY-10 is not in PayPal's order; unapproved: PayPal's order contains SKU TRL-WHT-10, which Witness never approved |
+| S5 | Cart swap (faulty checkout adapter) | VOIDED; $0 captured | VOIDED | order COMPLETED; auth VOIDED; captures none | 3DY932248R741162W / 8DS53576RJ8962603 | **PASS** | missing: approved SKU TRL-GRY-10 is not in PayPal's order; unapproved: PayPal's order contains SKU TRL-WHT-10, which Second Key never approved |
 | S7 | Idempotency-Key replay | same purchase, one order; different body 422 | CAPTURED | order COMPLETED; auth CAPTURED; captures COMPLETED 84.00 | 6HC3745677415453L / 5GT84606WP069451P / 0D711223FX4034051 | **PASS** | HTTP 202, 200, 422; create-order calls: 1 |
 | HOLD | Missing size -> HOLD (funds held), shopper revokes | HELD with auth CREATED, then VOIDED | VOIDED | order COMPLETED; auth VOIDED; captures none | 4UT79487WB302962V / 27C23357W4070974W | **PASS** | while held: HELD, auth CREATED; reasons: size: listing has no size |
 | SUSPICIOUS | Nearly 2x market price -> HOLD, shopper revokes | HELD with auth CREATED, then VOIDED | VOIDED | order COMPLETED; auth VOIDED; captures none | 7CB09826E0888362D / 9TJ48304Y8303351P | **PASS** | while held: HELD, auth CREATED; reasons: market_price: 8900 vs market median 4600 cents |

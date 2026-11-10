@@ -10,3 +10,5 @@ export * from "./protection.ts";
 export * from "./ap2.ts";
 export * from "./settlement.ts";
 export * from "./ap2-demo.ts";
+export * from "./ap2-shop.ts";
+export * from "./ap2-desk.ts";

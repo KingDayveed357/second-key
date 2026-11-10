@@ -119,6 +119,62 @@ export async function roseMandates(setup: Ap2Setup, key: CryptoKey, kid: string,
   return { openCheckout, openPayment, acceptable: family };
 }
 
+export interface ShopRule {
+  attribute: "color" | "size" | "brand" | "material";
+  any_of: string[] | null;
+  none_of: string[] | null;
+}
+export interface ShopPlan {
+  query: string;
+  max_cents: number;
+  rules: ShopRule[];
+}
+export interface ShopSetup {
+  agent: Ap2Setup["agent"];
+  shop: { merchant: { id: string; name: string; website: string } };
+}
+
+/**
+ * Rose's mandates for a real-product purchase: the shortlist she approved (AP2 line items), her rules
+ * (Second Key's attribute constraint, over facts Second Key fetches from the catalog itself) and her
+ * budget (AP2 amount range). The rules are not selectively disclosable, so an agent can't drop one.
+ */
+export async function shopMandates(setup: ShopSetup, plan: ShopPlan, shortlist: { id: string; title: string }[], key: CryptoKey, kid: string, now = Math.floor(Date.now() / 1000)) {
+  const merchant = { id: setup.shop.merchant.id, name: setup.shop.merchant.name, website: setup.shop.merchant.website };
+  const agentKey = { kty: setup.agent.jwk.kty, crv: setup.agent.jwk.crv, x: setup.agent.jwk.x, y: setup.agent.jwk.y };
+  const times = { iat: now, exp: now + 30 * 60 };
+  const rules = plan.rules.map((r) => ({ attribute: r.attribute, ...(r.any_of?.length ? { any_of: r.any_of } : {}), ...(r.none_of?.length ? { none_of: r.none_of } : {}) }));
+  const openCheckout = await issueMandate(
+    {
+      vct: "mandate.checkout.open.1",
+      constraints: [
+        { type: "checkout.line_items", items: [{ id: "choice", acceptable_items: shortlist.map((p) => disclose({ id: p.id, title: p.title.slice(0, 200) })), quantity: 1 }] },
+        { type: "checkout.allowed_merchants", allowed: [disclose(merchant)] },
+        ...(rules.length ? [{ type: "x-secondkey.item_attributes.1", rules }] : []),
+      ],
+      cnf: { jwk: agentKey },
+      ...times,
+    },
+    key,
+    kid,
+  );
+  const openPayment = await issueMandate(
+    {
+      vct: "mandate.payment.open.1",
+      constraints: [
+        { type: "payment.amount_range", currency: "USD", max: plan.max_cents },
+        { type: "payment.allowed_payees", allowed: [disclose(merchant)] },
+        { type: "payment.reference", conditional_transaction_id: await sha256b64url(openCheckout) },
+      ],
+      cnf: { jwk: agentKey },
+      ...times,
+    },
+    key,
+    kid,
+  );
+  return { openCheckout, openPayment };
+}
+
 /** RFC 7638 thumbprint, as the server computes it: the device's name. */
 export async function thumbprint(jwk: { kty: string; crv: string; x: string; y: string }): Promise<string> {
   return sha256b64url(JSON.stringify({ crv: jwk.crv, kty: jwk.kty, x: jwk.x, y: jwk.y }));

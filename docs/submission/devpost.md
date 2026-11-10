@@ -35,12 +35,14 @@ Second Key is a safety layer platforms build into their PayPal payment flow. It 
 4. **The ledger:** one mandate, one use, with budgets and recurrence tracked across merchants.
 5. **Then PayPal:** a conforming payment is bound to the PayPal order, which must hold exactly the verified checkout before the isolated executor captures it. Otherwise it's voided.
 
-Five runs show five outcomes: one purchase completes, and each of the other four is stopped by a different check. That includes the one AP2 alone can't catch: the white shoe Rose's own list allows. Every decision comes with a signed receipt you can verify in the browser.
+Five scripted runs show five outcomes: one purchase completes, and each of the other four is stopped by a different check. That includes the one AP2 alone can't catch: the white shoe Rose's own list allows.
+
+**Then on real products.** Type what Rose wants ("a gold smartwatch under $150"). Claude Haiku drafts the search, the colour rule and the budget, and you can change them. Channel3 returns real products from real retailers. Rose's device signs the mandate, and the agent (Haiku) picks one, or you make it pick any product. Second Key re-fetches that product from Channel3 by id, signs those facts, verifies, and settles on the PayPal sandbox. A listed product that isn't gold: AP2 says yes, Second Key says no. A listing that doesn't state its colour: not confirmed, not paid. A checkout that sends PayPal a different product: voided. An agent that hides Rose's list: still refused. Every decision comes with a signed receipt you can verify in the browser.
 
 **For people under pressure.** Rose sets a rule while she's calm: first payments of $500+ to someone new need Sarah. When a payment matches, PayPal reserves the money and only Sarah, on her own device, can release it. Rose can cancel but can't approve, so neither can whoever is coaching her. If she shares the conversation, Claude Haiku quotes the pressure tactics, and code checks every quote appears verbatim.
 
 **For operators and developers.**
-- **The Protection Desk** (AG Grid and AG Studio) shows every intervention with its evidence chain verified.
+- **The Protection Desk** (AG Grid and AG Studio) shows every intervention with its evidence chain verified, and every agent purchase under an AP2 mandate layer by layer. In AG Studio, a custom **Where agents were stopped** widget reads Studio's data engine, brackets what AP2 alone would have let through, and cross-filters the dashboard when you click a layer. The Studio agent (a custom harness over Studio's built-in agents, on Claude Haiku) answers questions over both. Themed end to end in Second Key's palette and type.
 - **`/developers`** has a one-click test verification that needs no account and no key, AP2 constraint templates as JSON, and a conformance suite run on the sandbox.
 
 ## How we built it
@@ -52,8 +54,8 @@ Five runs show five outcomes: one purchase completes, and each of the other four
   - Postgres with a hash-chained audit log, and pg-boss jobs written in the same transaction as the state they act on.
 - **AP2:** our own SD-JWT and delegation-chain verifier (`jose`, ES256), validated against AP2's canonical JSON schemas and tested both ways against Google's reference SDK. Receipts are ES256 JWTs with a published JWKS.
 - **PayPal:** Orders v2 with vaulted, buyer-not-present AUTHORIZE; capture and void with deterministic request IDs; Payouts; Webhooks; Disputes. Every outcome is read back from PayPal, and order status alone never counts as payment.
-- **Claude Haiku:** evidence with code-verified quotes, listing and injection checks, and the Studio analyst. It never approves.
-- **AG Grid and AG Studio** for the Desk, **Channel3** for independent product facts, **Render** for hosting.
+- **Claude Haiku:** evidence with code-verified quotes, listing and injection checks, the shopping agent's pick, drafting Rose's rules from her words (she sees and signs them), and the Studio analyst. It never approves.
+- **AG Grid and AG Studio** for the Desk. **Channel3** for the agent's product search and for the product facts Second Key re-fetches by id and signs before deciding. **Render** for hosting.
 
 ## Challenges we ran into
 

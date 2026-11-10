@@ -1,4 +1,4 @@
--- Witness schema v1. See docs/architecture.md §7.
+-- Second Key schema v1. See docs/architecture.md §7.
 -- Money is integer cents. Every table that holds customer data carries tenant_id.
 
 CREATE TABLE tenants (

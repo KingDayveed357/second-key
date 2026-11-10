@@ -1,4 +1,4 @@
-// S5 live test of the trusted-contact (one-time hold link) flow against a LOCAL Witness API + worker
+// S5 live test of the trusted-contact (one-time hold link) flow against a LOCAL Second Key API + worker
 // on the PayPal SANDBOX. Exercises: auth failures, link re-issue, concurrent conflicting decisions,
 // replay, independent PayPal verification and the audit trail. Never prints keys or tokens.
 //   npx tsx secondkey/spikes/s5/trusted-contact.ts
@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { ROOT } from "@witness/config";
 
 const BASE = process.env.WITNESS_API ?? "http://127.0.0.1:4000";
-const keys = JSON.parse(readFileSync(join(ROOT, ".witness", "dev-keys.json"), "utf8"));
+const keys = JSON.parse(readFileSync(join(ROOT, ".secondkey", "dev-keys.json"), "utf8"));
 const results: Record<string, unknown>[] = [];
 const rec = (name: string, pass: boolean, detail: Record<string, unknown> = {}) => {
   results.push({ name, pass, ...detail });
@@ -64,7 +64,7 @@ async function heldPurchase() {
   const pp1 = (await call("GET", `/v1/purchases/${id}/paypal`, keys.ops)).json;
   const authS = pp1.authorizations?.[0]?.status;
   const consistent = (decisions.state === "VOIDED" && authS === "VOIDED" && pp1.captures.length === 0) || (decisions.state === "CAPTURED" && pp1.captures.length === 1 && pp1.captures[0].status === "COMPLETED");
-  rec("final Witness state matches PayPal's own record", consistent, { witness: decisions.state, paypal_auth: authS, paypal_captures: pp1.captures.map((c: any) => `${c.status} ${c.amount?.value}`) });
+  rec("final Second Key state matches PayPal's own record", consistent, { witness: decisions.state, paypal_auth: authS, paypal_captures: pp1.captures.map((c: any) => `${c.status} ${c.amount?.value}`) });
   rec("replayed token after the decision → refused", [403, 409, 410].includes((await call("POST", `/v1/holds/${id}/approve`, undefined, { token: l2.token })).status));
   const chain = (await call("GET", `/v1/verify/purchases/${id}`)).json;
   rec("audit chain valid and records the decision", chain.valid && chain.events.some((e: any) => /void_decided|approved|capture/.test(e.event_type)), { events: chain.events.map((e: any) => e.event_type) });

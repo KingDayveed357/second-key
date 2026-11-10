@@ -1,6 +1,6 @@
-# Local stack: Postgres + Witness api, worker and web, against the PayPal SANDBOX.
+# Local stack: Postgres + Second Key api, worker and web, against the PayPal SANDBOX.
 #   1. cp .env.example .env and fill the PayPal sandbox values (and ANTHROPIC_API_KEY, optional)
-#   2. docker compose run --rm seed     -> writes .witness/dev-keys.json, prints the demo shopper id
+#   2. docker compose run --rm seed     -> writes .secondkey/dev-keys.json, prints the demo shopper id
 #   3. put WITNESS_DEMO_SHOPPER_ID and the ops/demo/shopper keys into .env (see README)
 #   4. docker compose up                -> web on http://localhost:3000, API on http://localhost:4000
 # The database password below is local-only.
@@ -41,7 +41,7 @@ services:
     <<: *app
     profiles: [tools]
     command: ["./node_modules/.bin/tsx", "scripts/seed.ts"]
-    volumes: ["./.witness:/app/.witness"]
+    volumes: ["./.secondkey:/app/.secondkey"]
     restart: "no"
 
   api:

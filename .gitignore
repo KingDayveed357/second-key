@@ -6,6 +6,7 @@ dist/
 .pgdata/
 coverage/
 *.tsbuildinfo
+.secondkey/
 .witness/
 .claude/
 evals/report/fake-latest.*

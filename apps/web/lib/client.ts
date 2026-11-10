@@ -62,15 +62,17 @@ export function checkLabel(id: string): string {
     "facts.available": "Product facts",
     "intent.not_expired": "Intent expiry",
     "intent.purchases_left": "Purchases left",
-    retailer: "Retailer",
+    retailer: "Merchant",
     currency: "Currency",
     market_price: "Market price",
     three_way_match: "PayPal order match",
     "ai.injection": "Prompt injection",
+    "ai.manipulation": "Pressure on the agent",
+    "cart.duplicate_line": "Duplicate item",
   };
   if (map[id]) return map[id]!;
   if (id.startsWith("ai.integrity:")) return `Listing integrity: ${id.slice(13)}`;
-  if (id.startsWith("ai.soft:")) return `Preference: ${id.slice(8)}`;
+  if (id.startsWith("ai.soft:")) return `Meaning: ${id.slice(8)}`;
   return id;
 }
 

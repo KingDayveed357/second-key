@@ -36,7 +36,7 @@ export default function Home() {
             <span className="sk-entry-go">Protect a payment →</span>
           </Link>
 
-          <Link href="/agent" className="sk-entry">
+          <Link href="/agent#poisoned" className="sk-entry">
             <span className="sk-entry-kind">An AI agent on a poisoned page</span>
             <span className="sk-entry-line">
               <span>Rose&apos;s agent → Ridgeline Trail Runner</span>
@@ -51,6 +51,13 @@ export default function Home() {
             <span className="sk-entry-go">Protect a purchase →</span>
           </Link>
         </div>
+        <Link href="/agent#real-products" className="sk-ap2-strip">
+          <span className="sk-entry-kind">Agents with an AP2 mandate</span>
+          <span className="sk-ap2-strip-line">
+            AP2 proves the agent was allowed to pay. Second Key checks it bought what you meant, on real products from Channel3, before PayPal captures.
+          </span>
+          <span className="sk-entry-go">Try it with real products →</span>
+        </Link>
         <p className="xs muted">
           Both run on the PayPal sandbox with synthetic people. <Link href="/about">What&apos;s real here</Link>
         </p>

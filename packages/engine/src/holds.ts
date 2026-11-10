@@ -293,7 +293,7 @@ export interface HoldVerification {
 
 /**
  * PayPal's own record of this held payment, read live (no money moves). Lets a reviewer check the
- * outcome themselves instead of trusting Witness's state. Same access rules as viewing the hold.
+ * outcome themselves instead of trusting Second Key's state. Same access rules as viewing the hold.
  */
 export async function verifyHold(d: EngineDeps, purchaseId: string, actor: HoldActor, tenantId?: string): Promise<HoldResult<HoldVerification>> {
   const ctx = await load(d, purchaseId);

@@ -1,4 +1,4 @@
-// A stateful fake of the PayPal endpoints Witness uses, for deterministic pipeline tests.
+// A stateful fake of the PayPal endpoints Second Key uses, for deterministic pipeline tests.
 // Behaviour mirrors what Stage 1 observed on the real sandbox (docs/spike-results.md):
 // - a vault_id order is created AND authorized in one call; the response is a minimal
 //   representation (reference_id + payments only); GET returns the full order

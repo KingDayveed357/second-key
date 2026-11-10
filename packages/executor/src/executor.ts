@@ -239,7 +239,7 @@ export async function holdTimeout(d: ExecutorDeps, job: PurchaseJob): Promise<st
 
 /**
  * Job: reconcile. Reads PayPal's own state and moves the purchase to match it. Safe to run any
- * number of times; this is what makes "PayPal succeeded but Witness didn't record it" recoverable.
+ * number of times; this is what makes "PayPal succeeded but Second Key didn't record it" recoverable.
  */
 export async function reconcile(d: ExecutorDeps, job: PurchaseJob): Promise<string> {
   const p = (await dbOf(d.pool).select().from(purchases).where(and(eq(purchases.id, job.purchaseId), eq(purchases.tenantId, job.tenantId))).limit(1))[0];

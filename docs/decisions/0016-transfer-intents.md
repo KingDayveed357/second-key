@@ -6,7 +6,7 @@ Status: accepted for the hardening milestone (2026-10-17). Supersedes the sprint
 
 In the feasibility sprint a Second Key transfer travelled through the shopping path disguised as a product.
 
-1. **`packages/catalog/src/fixtures.ts`**: the transfer was a catalog fixture, `XFER-NEW-PAYEE`, with a "retailer" `secondkey.test`. Its amount ($1,800) was the fixture's *offer price*, and the payee was a product attribute. The payer never chose the amount. Witness read it from a catalog.
+1. **`packages/catalog/src/fixtures.ts`**: the transfer was a catalog fixture, `XFER-NEW-PAYEE`, with a "retailer" `secondkey.test`. Its amount ($1,800) was the fixture's *offer price*, and the payee was a product attribute. The payer never chose the amount. Second Key read it from a catalog.
 2. **`packages/core/src/checks.ts` `resolveCart`**: the "cart" was resolved from catalog facts and an offer, then screened by `screenCart`. That function applies shopping rules (retailer allowlist, quantity, size/colour/brand, market price) that mean nothing for a transfer.
 3. **`packages/ai/src/components.ts` `aiScreen`**: listing integrity ("exactly one complete unit of one specific product") held a benign transfer. The stopgap skipped listing checks when `category` started with `Transfers >`. That is a string match on catalog data deciding which safety checks run. A catalog entry could switch checks off, which is exactly the kind of bypass this ADR removes.
 4. **`packages/engine/src/scenarios.ts` `transferPolicy`**: a shopping policy (`products`, `retailers`, `substitution`) was pretending to be a transfer.
@@ -72,7 +72,7 @@ Malformed output, timeouts, refusals and missing checks all become `unknown`. Ap
 
 - **The cart representation is reused for transfers.** It is cheap and keeps the executor and three-way match untouched. The cost: transfer data sits in `purchases.cart`, and the table is still named `purchases`. A rename to `payments` is deferred, since it touches DB, API and UI for no safety gain now.
 - **Transfers use the `/v1/purchases` endpoint and `agent:purchase` scope.** A separate `/v1/transfers` and a `payer` scope would be cleaner for a real product. That is deferred, but the request is already a distinct, validated type, so splitting the route later doesn't change the engine.
-- **The PayPal item category stays `PHYSICAL_GOODS`** for transfers in the platform-held sandbox flow. It is cosmetic for the sandbox; revisit with the real payment flow (see `docs/secondkey/06-paypal-flows.md`).
+- **The PayPal item category stays `PHYSICAL_GOODS`** for transfers in the platform-held sandbox flow. It is cosmetic for the sandbox; revisit with the real payment flow (see [paypal-flows.md](../paypal-flows.md)).
 
 ## Migration
 

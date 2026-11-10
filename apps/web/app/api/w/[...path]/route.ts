@@ -1,4 +1,4 @@
-// Allowlisted proxy to the Witness API (see lib/server/proxy.ts for the rules).
+// Allowlisted proxy to the Second Key API (see lib/server/proxy.ts for the rules).
 import { cookies, headers } from "next/headers";
 import { PAYER_COOKIE, allowCostly, apiBase, keyFor, match } from "../../../../lib/server/proxy";
 import { SESSION_COOKIE, validSession } from "../../../../lib/server/session";
@@ -52,7 +52,7 @@ async function forward(req: Request, ctx: { params: Promise<{ path: string[] }> 
       signal: AbortSignal.timeout(60_000),
     });
   } catch {
-    return problem(502, "Witness API unreachable");
+    return problem(502, "Service API unreachable");
   }
   const text = await res.text();
   return new Response(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") ?? "application/json", "cache-control": "no-store", ...(res.headers.get("retry-after") ? { "retry-after": res.headers.get("retry-after")! } : {}) } });

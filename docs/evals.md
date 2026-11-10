@@ -1,4 +1,4 @@
-# Witness evals
+# Second Key evals
 
 Status: **Suite 1 at version suite1-v2** after the evaluation audit of 2026-10-12 · first drafted for Checkpoint 2, 2026-10-11
 
@@ -39,7 +39,7 @@ Two suites. Scores are published in the README (badge + table), regenerated in C
 
 ## Suite 2: Payment correctness (sandbox, manual run)
 
-Runs through the **public Witness API** against the real sandbox, with the demo shopper's vault. Every scenario asserts PayPal's own final state with a GET, not Witness's view.
+Runs through the **public Second Key API** against the real sandbox, with the demo shopper's vault. Every scenario asserts PayPal's own final state with a GET, not Second Key's view.
 
 | # | Scenario | Assert (via GET on PayPal) |
 |---|---|---|
@@ -55,9 +55,9 @@ Runs through the **public Witness API** against the real sandbox, with the demo 
 | S10 | Webhook duplicate + out of order (replayed via resend) | final state unchanged |
 | S11 | Kill the worker mid-capture, restart | reconciler completes; exactly one capture |
 | S12 | Intent revoked during HOLD | `VOIDED` |
-| S13 | Dispute on a Witness capture (buyer-opened) | evidence submitted; sandbox adjudication recorded as simulated |
+| S13 | Dispute on a Second Key capture (buyer-opened) | evidence submitted; sandbox adjudication recorded as simulated |
 
-**Metric:** unauthorized captures across the suite = **0** (the BRIEF's success criterion), with a PayPal debug ID recorded for every failure.
+**Metric:** unauthorized captures across the suite = **0** (the product's core success criterion), with a PayPal debug ID recorded for every failure.
 
 ## Reporting
 

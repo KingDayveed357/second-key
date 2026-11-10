@@ -91,7 +91,7 @@ describe("POST /v2/settlements", () => {
     const orderId = await order([{ sku: "TRL-WHT-10", cents: 19900 }]);
     const bound = (await settle(v.verification_id, orderId)).json();
     expect(bound.state).toBe("VOIDING");
-    expect(bound.diffs).toEqual(expect.arrayContaining(["missing: approved SKU sku_gold_9 is not in PayPal's order", "unapproved: PayPal's order contains SKU TRL-WHT-10, which Witness never approved"]));
+    expect(bound.diffs).toEqual(expect.arrayContaining(["missing: approved SKU sku_gold_9 is not in PayPal's order", "unapproved: PayPal's order contains SKU TRL-WHT-10, which Second Key never approved"]));
     const captures = h.fake.captures.size;
     await h.drain();
     const s = (await get(`/v2/settlements/${bound.settlement_id}`)).json();

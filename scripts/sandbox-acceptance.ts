@@ -1,6 +1,6 @@
-// Stage 3 acceptance against the REAL PayPal sandbox, through the public Witness API.
-// Requires the API + worker running (pnpm api / pnpm worker) and .witness/dev-keys.json from seed.
-// Every scenario asserts PayPal's own final state (GET via /v1/purchases/:id/paypal), not Witness's.
+// Stage 3 acceptance against the REAL PayPal sandbox, through the public Second Key API.
+// Requires the API + worker running (pnpm api / pnpm worker) and .secondkey/dev-keys.json from seed.
+// Every scenario asserts PayPal's own final state (GET via /v1/purchases/:id/paypal), not Second Key's.
 // Writes docs/evidence/stage3-sandbox-run.md. Never prints API keys.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { ROOT } from "@witness/config";
 
 const BASE = process.env.WITNESS_API ?? "https://witness-api-kee6.onrender.com";
-const keys = JSON.parse(readFileSync(process.env.WITNESS_KEYS_FILE ?? join(ROOT, ".witness", "dev-keys.json"), "utf8"));
+const keys = JSON.parse(readFileSync(process.env.WITNESS_KEYS_FILE ?? join(ROOT, ".secondkey", "dev-keys.json"), "utf8"));
 const TERMINAL = new Set(["REJECTED", "AUTH_FAILED", "CAPTURED", "VOIDED", "CAPTURE_DECLINED", "HELD"]);
 
 async function call(method: string, path: string, key: string, body?: unknown, extra: Record<string, string> = {}) {
@@ -50,7 +50,7 @@ function record(id: string, scenario: string, expected: string, p: any, pp: any,
   const cap = pp?.captures?.[0];
   const ppText = !pp?.order ? "no order exists" : `order ${pp.order.status}; auth ${auth?.status ?? "-"}; captures ${pp.captures.length ? pp.captures.map((c: any) => `${c.status} ${c.amount.value}`).join(", ") : "none"}`;
   rows.push({ id, scenario, expected, witness_state: p.state, paypal: ppText, pass, ids: [pp?.order?.id, auth?.id, cap?.id].filter(Boolean).join(" / ") || "-", note });
-  console.log(`${pass ? "PASS" : "FAIL"} ${id} ${scenario}: Witness ${p.state}; PayPal ${ppText}`);
+  console.log(`${pass ? "PASS" : "FAIL"} ${id} ${scenario}: Second Key ${p.state}; PayPal ${ppText}`);
 }
 
 async function scenario(name: string) {
@@ -148,7 +148,7 @@ const md = [
   "",
   "Each row's PayPal column is PayPal's own state, fetched live after the run (`GET /v2/checkout/orders/{id}` via `/v1/purchases/:id/paypal`).",
   "",
-  "| # | Scenario | Expected | Witness | PayPal (live GET) | Order / Auth / Capture | Result | Notes |",
+  "| # | Scenario | Expected | Second Key | PayPal (live GET) | Order / Auth / Capture | Result | Notes |",
   "|---|---|---|---|---|---|---|---|",
   ...rows.map((r) => `| ${r.id} | ${r.scenario} | ${r.expected} | ${r.witness_state} | ${r.paypal} | ${r.ids} | ${r.pass ? "**PASS**" : "**FAIL**"} | ${r.note.replace(/\|/g, "/")} |`),
   "",

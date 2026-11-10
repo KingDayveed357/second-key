@@ -11,7 +11,7 @@ export function cartTotal(cart) {
 
 /**
  * Create an order with intent AUTHORIZE carrying real line items, so PayPal's own
- * record of the order can later be matched against what Witness approved.
+ * record of the order can later be matched against what Second Key approved.
  * Pass vaultId to pay with a saved PayPal wallet (no buyer present).
  */
 export async function createAuthorizeOrder(cart, { customId, vaultId, label = "create-order" } = {}) {
@@ -41,7 +41,7 @@ export async function createAuthorizeOrder(cart, { customId, vaultId, label = "c
       : {
           paypal: {
             experience_context: {
-              brand_name: "Witness Demo Store",
+              brand_name: "Second Key Demo Store",
               user_action: "PAY_NOW",
               shipping_preference: "NO_SHIPPING",
               return_url: RETURN_URL,

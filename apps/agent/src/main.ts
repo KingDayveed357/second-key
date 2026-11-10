@@ -14,7 +14,7 @@ const args = process.argv.slice(2);
 const i = args.indexOf("--intent");
 const intentId = i >= 0 ? args[i + 1] : undefined;
 const instruction = args.filter((_, k) => k !== i && k !== i + 1).join(" ") || undefined;
-const keysFile = process.env.WITNESS_KEYS_FILE ?? join(root, ".witness", "dev-keys.json");
+const keysFile = process.env.WITNESS_KEYS_FILE ?? join(root, ".secondkey", "dev-keys.json");
 const agentKey = process.env.WITNESS_AGENT_KEY ?? (existsSync(keysFile) ? JSON.parse(readFileSync(keysFile, "utf8")).agent : undefined);
 
 const missing = [!intentId && "--intent <id>", !agentKey && "WITNESS_AGENT_KEY or WITNESS_KEYS_FILE", !process.env.ANTHROPIC_API_KEY && "ANTHROPIC_API_KEY"].filter(Boolean);

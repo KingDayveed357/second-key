@@ -34,7 +34,7 @@ A fresh suite, adv-v2, was written and run **before** this change: 45 of 69 proh
    - `unclear`: text that points both ways, quoted.
 
    Absence of information is `consistent`. Missing mandatory fields are already a deterministic HOLD (no size, colour, brand or category means `unknown`).
-4. **Evidence is validated against the listing Witness fetched.** A quote counts only if it is copied from the field the model names (`title`, `brand`, `category`, `description` or `attributes.<key>`), and is at least 12 characters or that field's entire value. A matching scrap of text or a high confidence alone is not proof. The same rule now applies to preference verdicts, which closes ADR-0012's "short quote" residual risk.
+4. **Evidence is validated against the listing Second Key fetched.** A quote counts only if it is copied from the field the model names (`title`, `brand`, `category`, `description` or `attributes.<key>`), and is at least 12 characters or that field's entire value. A matching scrap of text or a high confidence alone is not proof. The same rule now applies to preference verdicts, which closes ADR-0012's "short quote" residual risk.
 5. **Mapping (stricter only):**
 
 | Answer | Result |
@@ -46,7 +46,7 @@ A fresh suite, adv-v2, was written and run **before** this change: 45 of 69 proh
 | `consistent` (any confidence) | no effect |
 
    `consistent` adds no hold and settles nothing. Deferred category checks are settled only by a grounded preference verdict (ADR-0012), never by an integrity answer, so integrity can't weaken any check. The confidence of a `consistent` answer is therefore not used. Holding on low-confidence `consistent` answers held 4 of 4 clean smoke cases on the first live run: the model expresses "I can't confirm" as low confidence on silent listings.
-6. **Authenticity is not claimed.** Brand still rests on the deterministic brand field plus the absence of contradicting signals. A merchant's own "100% authentic" is not evidence, and Witness never states that a product is authentic.
+6. **Authenticity is not claimed.** Brand still rests on the deterministic brand field plus the absence of contradicting signals. A merchant's own "100% authentic" is not evidence, and Second Key never states that a product is authentic.
 
 ## Payment boundary (unchanged, plus one hardening)
 

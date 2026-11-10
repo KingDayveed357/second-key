@@ -1,5 +1,5 @@
-// Integrated acceptance test (Deliverable 7) against a LOCAL Witness API + worker on the PayPal
-// SANDBOX. Every payment action goes through the shared Witness engine: screening (deterministic +
+// Integrated acceptance test (Deliverable 7) against a LOCAL Second Key API + worker on the PayPal
+// SANDBOX. Every payment action goes through the shared Second Key engine: screening (deterministic +
 // AI checks) → PayPal authorization → HOLD → one-time trusted-contact link → executor void/capture →
 // independent PayPal GET → hash-chained audit. Never prints keys or tokens.
 //
@@ -21,7 +21,7 @@ import { ROOT, loadDotEnv } from "@witness/config";
 import { transferPolicy, transferRequest } from "@witness/engine";
 
 const BASE = process.env.WITNESS_API ?? "http://127.0.0.1:4000";
-const keys = JSON.parse(readFileSync(join(ROOT, process.env.WITNESS_KEYS_FILE ?? ".witness/dev-keys.json"), "utf8"));
+const keys = JSON.parse(readFileSync(join(ROOT, process.env.WITNESS_KEYS_FILE ?? ".secondkey/dev-keys.json"), "utf8"));
 const results: Record<string, unknown>[] = [];
 const rec = (flow: string, name: string, pass: boolean, detail: Record<string, unknown> = {}) => {
   results.push({ flow, name, pass, ...detail });
@@ -52,7 +52,7 @@ const checkOf = async (p: any, id: string) => {
 };
 const paypal = async (id: string) => (await call("GET", `/v1/purchases/${id}/paypal`, keys.ops)).json;
 
-// Direct PayPal reads with this script's own sandbox token: independent of the Witness API and DB.
+// Direct PayPal reads with this script's own sandbox token: independent of the Second Key API and DB.
 loadDotEnv();
 const PP = process.env.PAYPAL_BASE_URL!.replace(/\/$/, "");
 if (!/^https:\/\/api(-m)?\.sandbox\.paypal\.com$/.test(PP)) throw new Error("sandbox only");
@@ -81,7 +81,7 @@ async function denyAndVerify(flow: string, id: string) {
   const p = await until(id, (s) => s === "VOIDED" || s === "NEEDS_RECONCILE");
   const pp = await paypal(id);
   const direct = await paypalDirect(`/v2/payments/authorizations/${await authorizationId(id)}`);
-  rec(flow, "direct PayPal GET /v2/payments/authorizations/{id} (own token, not via Witness): VOIDED", direct.status === 200 && direct.data?.status === "VOIDED", { status: direct.data?.status, amount: direct.data?.amount?.value, debug_id: direct.debug_id });
+  rec(flow, "direct PayPal GET /v2/payments/authorizations/{id} (own token, not via Second Key): VOIDED", direct.status === 200 && direct.data?.status === "VOIDED", { status: direct.data?.status, amount: direct.data?.amount?.value, debug_id: direct.debug_id });
   rec(flow, "PayPal authorization VOIDED, $0 captured (independent GET)", p.state === "VOIDED" && pp.authorizations?.[0]?.status === "VOIDED" && pp.captures.length === 0, { authorization: pp.authorizations?.[0]?.id, status: pp.authorizations?.[0]?.status, seconds: Math.round((Date.now() - t0) / 1000) });
   const dup = await call("POST", `/v1/holds/${id}/deny`, undefined, { token: link.json.token });
   rec(flow, "retried deny returns the recorded decision (replayed), no second void", dup.status === 200 && dup.json?.replayed === true, { status: dup.status, replayed: dup.json?.replayed ?? null });

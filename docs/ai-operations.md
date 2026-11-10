@@ -78,7 +78,7 @@ Cache entries last 5 minutes. Sparse production traffic will mostly pay the writ
 ## Rotating or revoking the Anthropic key
 
 1. In the Anthropic Console, create a new key, update `witness/.env` and Render's `witness-api` environment, and redeploy. Then delete the old key in the Console.
-2. If a key is compromised: delete it in the Console immediately. Witness then fails closed (every purchase HOLDs) until a new key is configured.
+2. If a key is compromised: delete it in the Console immediately. Second Key then fails closed (every purchase HOLDs) until a new key is configured.
 3. Keys never appear in Git, logs, reports or prompts. Commits are scanned for `sk-ant-` patterns before every commit in this workflow.
 
 ## Known limitations
@@ -95,5 +95,5 @@ Cache entries last 5 minutes. Sparse production traffic will mostly pay the writ
   Injection in listing fields was caught in all 4 cases. **After ADR-0014 (listing integrity): 0 of 51 adv-v1 and 0 of 69 adv-v2 prohibited runs captured.** See `docs/evals.md` for limits; the suites are internally authored.
 - **Open false reject:** the preference verdict misreads "Rated to 15°F" as violating "rated to 20°F or colder" (adv-v2 v2-ctl-01). Left untuned so adv-v2 stays a fair test; fix in the next prompt version, measured on a new suite.
 - **Cost per screened cart is now about $0.0003** (one injection call plus one semantic call for every cart that passes deterministic screening). p95 screening latency is 5.3–6.5 s.
-- **Real catalog data is often thin.** In the live agent run, Channel3 had no size for a real Nike shoe, so Witness correctly held it. Expect a meaningful HOLD rate on real listings until sizes and colours are resolved from variants.
+- **Real catalog data is often thin.** In the live agent run, Channel3 had no size for a real Nike shoe, so Second Key correctly held it. Expect a meaningful HOLD rate on real listings until sizes and colours are resolved from variants.
 - **Costs are local estimates.** Anthropic's bill is authoritative; reconcile in the Console. The remaining balance can't be read with a standard API key (usage and cost reports need an Admin API key).

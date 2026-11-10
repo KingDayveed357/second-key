@@ -1,4 +1,4 @@
-// The agent can't import Witness packages (architecture rule), so it keeps its own allowlist.
+// The agent can't import Second Key packages (architecture rule), so it keeps its own allowlist.
 // This test (tests may cross boundaries) keeps the two in sync.
 
 import { expect, test } from "vitest";

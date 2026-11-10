@@ -41,7 +41,7 @@ describe("recorded sandbox responses", () => {
     const exp = { order_id: data.id, currency: "USD", amount_cents: 8400, payee_merchant_id: PAYEE, items: [{ sku: "TRL-GRY-10", quantity: 1, unit_cents: 8400 }] };
     expect(threeWayMatch(exp, data)).toEqual([
       "missing: approved SKU TRL-GRY-10 is not in PayPal's order",
-      "unapproved: PayPal's order contains SKU TRL-WHT-10, which Witness never approved",
+      "unapproved: PayPal's order contains SKU TRL-WHT-10, which Second Key never approved",
     ]);
   });
 

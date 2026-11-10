@@ -1,7 +1,7 @@
 // S4 sandbox spike: which legitimate PayPal flows can carry a "held" protected payment?
 // SANDBOX ONLY (the transport refuses any other host). This is a spike outside the product path: it
 // calls the executor's money-movement client directly to test semantics. In the product, capture and
-// void stay in the isolated executor (Witness ADR-0005).
+// void stay in the isolated executor (Second Key ADR-0005).
 //
 //   npx tsx secondkey/spikes/s4/architectures.ts
 // Writes secondkey/reports/s4-architectures.json. Never prints credentials.
@@ -23,7 +23,7 @@ const payouts = new PayPalTransport({ ...creds, role: "script" });
 
 const db = new pg.Client({ connectionString: process.env.SK_DATABASE_URL ?? "postgres://witness:witness-dev-only@127.0.0.1:54330/witness" });
 await db.connect();
-const keys = JSON.parse(readFileSync(join(ROOT, ".witness", "dev-keys.json"), "utf8"));
+const keys = JSON.parse(readFileSync(join(ROOT, ".secondkey", "dev-keys.json"), "utf8"));
 const vaultId = (await db.query("select vault_id from shoppers where id = $1", [keys.demo_shopper_id])).rows[0].vault_id as string;
 await db.end();
 
@@ -115,5 +115,5 @@ const deny = { order_id: "", auth_id: "" };
 }
 
 mkdirSync(join(ROOT, "secondkey", "reports"), { recursive: true });
-writeFileSync(join(ROOT, "secondkey", "reports", "s4-architectures.json"), JSON.stringify({ ran_at: new Date().toISOString(), environment: "PayPal SANDBOX (api-m.sandbox.paypal.com)", payer: "vaulted sandbox buyer (Witness demo shopper)", steps }, null, 2) + "\n");
+writeFileSync(join(ROOT, "secondkey", "reports", "s4-architectures.json"), JSON.stringify({ ran_at: new Date().toISOString(), environment: "PayPal SANDBOX (api-m.sandbox.paypal.com)", payer: "vaulted sandbox buyer (Second Key demo shopper)", steps }, null, 2) + "\n");
 console.log("written secondkey/reports/s4-architectures.json");

@@ -6,7 +6,7 @@ Status: **Implemented** (Stage 5, 2026-10-13)
 
 Stage 5 adds `apps/web`: the judge page, the shopper page, the phone HOLD approval page and the AG Studio ops console. Judges must be able to run everything from a URL with no setup. The API authenticates with bearer keys per role (agent, shopper, ops, demo, admin), and none of those keys may reach a browser.
 
-The boilerplate named in the build plan (PayPal's AG Grid starter) mainly provides PayPal SDK samples. Witness's API already owns every PayPal call, so `apps/web` starts from plain Next.js 16 / React 19, the same stack as the boilerplate (ADR-0006), with no PayPal dependency at all.
+The boilerplate named in the build plan (PayPal's AG Grid starter) mainly provides PayPal SDK samples. Second Key's API already owns every PayPal call, so `apps/web` starts from plain Next.js 16 / React 19, the same stack as the boilerplate (ADR-0006), with no PayPal dependency at all.
 
 ## Decision
 
@@ -28,7 +28,7 @@ The boilerplate named in the build plan (PayPal's AG Grid starter) mainly provid
    - caches the stable prefix (instructions and tools);
    - enforces a per-process spend cap (`WITNESS_STUDIO_AI_MAX_SPEND_USD`, default $0.50) and its own rate limit.
 
-   The agent sees only the console data that AG Studio passes it. It has no route to the Witness API or to PayPal.
+   The agent sees only the console data that AG Studio passes it. It has no route to the Second Key API or to PayPal.
 5. **One-time hold tokens** are removed from the address bar and history as soon as the page has read them.
 6. **The judge screen ("try to beat it")** runs the real `evaluateScreen` against the demo policy on a judge-written listing. Its input is strict: unknown fields are rejected, and sizes are capped. It creates no purchase and makes no PayPal call. A test checks the purchase count and the fake PayPal call log before and after.
 7. **Demo reset is admin-only** (`POST /v1/demo/reset`, `pnpm demo:reset`). It is not reachable from the web app. It revokes the intents of held purchases, so the executor voids their authorizations on PayPal, then starts a new audit epoch. Nothing is deleted, and earlier epochs stay verifiable. The judge page's own "Reset page" only clears what that page shows.

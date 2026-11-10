@@ -1,4 +1,4 @@
-// The browser's only door to the Witness API. NOT an open proxy: each forwarded route is listed
+// The browser's only door to the Second Key API. NOT an open proxy: each forwarded route is listed
 // below with the role whose API key is attached server-side. Keys never leave this process.
 //
 //   public  - no key (public API routes)
@@ -28,6 +28,8 @@ export const RULES: Rule[] = [
   { method: "POST", pattern: new RegExp(`^/v1/demo/scenarios/${ID}$`), role: "demo", costly: true },
   { method: "GET", pattern: /^\/v1\/demo\/stats$/, role: "demo" },
   { method: "GET", pattern: /^\/v1\/demo\/incidents$/, role: "demo" },
+  // AP2 mandate verifications for the public Desk: the current demo session only.
+  { method: "GET", pattern: /^\/v1\/demo\/ap2\/incidents$/, role: "demo" },
   { method: "POST", pattern: /^\/v1\/demo\/screen$/, role: "demo", costly: true },
   { method: "GET", pattern: /^\/v1\/demo\/samples$/, role: "public" },
   { method: "POST", pattern: /^\/v1\/demo\/analyze$/, role: "demo", costly: true },
@@ -63,6 +65,8 @@ export const RULES: Rule[] = [
   { method: "POST", pattern: /^\/v1\/me\/demo\/ap2\/surface$/, role: "payer" },
   { method: "POST", pattern: new RegExp(`^/v1/me/demo/ap2/runs/${ID}$`), role: "payer", costly: true },
   { method: "GET", pattern: new RegExp(`^/v1/me/demo/ap2/settlements/${ID}$`), role: "payer" },
+  // Real-product runs (Channel3): plan (AI), search, the agent's pick (AI), and the run itself.
+  { method: "POST", pattern: /^\/v1\/me\/demo\/ap2\/shop\/(plan|search|pick|runs)$/, role: "payer", costly: true },
   { method: "GET", pattern: /^\/\.well-known\/jwks\.json$/, role: "public" },
 
   // The guardian's demo channel: readable only with the inbox secret held by the guardian's window.
@@ -74,7 +78,7 @@ export const RULES: Rule[] = [
   { method: "POST", pattern: new RegExp(`^/v1/holds/${ID}/(view|verification)$`), role: "token" },
   { method: "POST", pattern: new RegExp(`^/v1/holds/${ID}/(approve|deny)$`), role: "token" },
 
-  { method: "GET", pattern: /^\/v1\/console\/(purchases|holds|stats|webhooks)$/, role: "console" },
+  { method: "GET", pattern: /^\/v1\/console\/(purchases|holds|stats|webhooks|ap2)$/, role: "console" },
   { method: "GET", pattern: new RegExp(`^/v1/console/purchases/${ID}/checks$`), role: "console" },
   { method: "GET", pattern: new RegExp(`^/v1/console/disputes$`), role: "console" },
   { method: "POST", pattern: /^\/v1\/console\/disputes$/, role: "console" },

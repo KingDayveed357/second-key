@@ -83,7 +83,7 @@ if (!cases.length) throw new Error("no cases selected");
 const kind = fake ? "offline-fake" : smoke ? "live-smoke" : only || runs < 3 ? "live-partial" : "live-full";
 const suiteName = adversarial ? `adversarial suite ${suiteVersion} (separate from the benchmark; not independent validation)` : `benchmark ${suiteVersion}`;
 const KIND_LABEL: Record<string, string> = {
-  "offline-fake": `OFFLINE FAKE-MODEL TEST of the ${suiteName}: checks the runner only. NOT a measurement of Witness.`,
+  "offline-fake": `OFFLINE FAKE-MODEL TEST of the ${suiteName}: checks the runner only. NOT a measurement of Second Key.`,
   "live-smoke": `LIVE HAIKU SMOKE EVALUATION of the ${suiteName}: ${cases.length} representative cases x ${runs} run(s), not the full suite.`,
   "live-partial": `PARTIAL REAL-MODEL EVALUATION of the ${suiteName}: ${cases.length} of ${pool.length} cases x ${runs} run(s).`,
   "live-full": `FULL REAL-MODEL EVALUATION of the ${suiteName}: all ${cases.length} cases x ${runs} runs.`,

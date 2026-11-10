@@ -1,4 +1,4 @@
-# Witness AI design
+# Second Key AI design
 
 Status: **Draft for Checkpoint 2** · 2026-10-11
 
@@ -40,7 +40,7 @@ AI turns language into structure and judges fuzzy constraints. **Deterministic c
 
 | | |
 |---|---|
-| Input | Each `soft` constraint + Witness-fetched facts (title, attributes, description) for each line |
+| Input | Each `soft` constraint + Second Key-fetched facts (title, attributes, description) for each line |
 | Output | `[{ constraint_id, line_ref, verdict: satisfies / violates / unknown, confidence, evidence_quote }]`; `evidence_quote` must be a verbatim substring of the facts (checked in code, otherwise treated as `unknown`) |
 | Use | `violates` with confidence ≥ 0.8 → REJECT. `unknown`, or confidence below threshold → HOLD. All `satisfies` with confidence ≥ 0.8 → passes |
 | Example | "no wool" vs "merino blend": violates; quote "merino wool blend" |

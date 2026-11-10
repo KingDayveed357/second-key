@@ -4,7 +4,7 @@ Status: accepted (2026-10-17).
 
 ## Context
 
-Approving a Second Key transfer captured the payment to the platform's sandbox merchant, and the recipient got nothing. PayPal won't let a non-partner platform void a payment made directly to a third party (see 06-paypal-flows, A2). The supported way to reach the recipient is therefore a **second, separate movement**: a PayPal Payout from the platform, after the capture.
+Approving a Second Key transfer captured the payment to the platform's sandbox merchant, and the recipient got nothing. PayPal won't let a non-partner platform void a payment made directly to a third party (see [paypal-flows.md](../paypal-flows.md), A2). The supported way to reach the recipient is therefore a **second, separate movement**: a PayPal Payout from the platform, after the capture.
 
 ## Decision
 

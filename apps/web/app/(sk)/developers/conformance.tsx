@@ -1,6 +1,6 @@
 "use client";
 
-// The integration conformance suite (formerly the Witness judge page): every case runs the real engine
+// The integration conformance suite: every case runs the real engine
 // against the PayPal sandbox through the same path an integrator's agent or app uses, and each result
 // can be checked against PayPal's own record and the purchase's hash-chained audit trail.
 

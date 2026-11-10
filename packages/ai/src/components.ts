@@ -38,7 +38,7 @@ export async function checkInjection(ai: LlmClient, facts: ProductFacts[]): Prom
   }
   if (r.value.suspected && r.value.confidence >= THRESHOLDS.injection) {
     const span = r.value.spans[0];
-    // Only spans that really occur in a listing Witness fetched count as evidence.
+    // Only spans that really occur in a listing Second Key fetched count as evidence.
     const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
     const texts = facts.map((f) => norm(listingText(f)));
     const evidence: EvidenceItem[] = r.value.spans
@@ -116,7 +116,7 @@ function fieldText(f: ProductFacts, field: string): string | undefined {
 }
 
 /**
- * Evidence counts only if the quote is copied from the named field of the listing Witness fetched,
+ * Evidence counts only if the quote is copied from the named field of the listing Second Key fetched,
  * and is substantive: at least 12 characters, or that field's entire value (e.g. a colour "Ivory").
  * A matching scrap of text or a high confidence on its own is not proof.
  */

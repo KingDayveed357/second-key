@@ -1,4 +1,4 @@
-// Money is integer cents everywhere inside Witness. Strings only at the PayPal boundary.
+// Money is integer cents everywhere inside Second Key. Strings only at the PayPal boundary.
 
 export class MoneyError extends Error {}
 

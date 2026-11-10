@@ -1,4 +1,4 @@
-// Minimal PayPal REST client for the Witness spikes.
+// Minimal PayPal REST client for the Second Key spikes.
 // Zero dependencies (Node >= 20.12). Every request and response is written to
 // spikes/out/ so each spike leaves real evidence behind, not just console text.
 

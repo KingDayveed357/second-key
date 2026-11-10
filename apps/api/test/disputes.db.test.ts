@@ -18,7 +18,7 @@ const bearer = (k: string) => ({ authorization: `Bearer ${keys[k]}` });
 let purchaseId = "";
 let captureId = "";
 const EVIDENCE =
-  "The shopper confirmed: trail-running shoes, size 10, under 90 USD, not white. Witness verified the cart against that instruction and against PayPal's stored order before capturing exactly the approved amount.";
+  "The shopper confirmed: trail-running shoes, size 10, under 90 USD, not white. Second Key verified the cart against that instruction and against PayPal's stored order before capturing exactly the approved amount.";
 
 beforeAll(async () => {
   h = await createHarness();
@@ -45,7 +45,7 @@ const attach = (id: string, k = "ops") => app.inject({ method: "POST", url: "/v1
 const submit = (id: string, text: string) => app.inject({ method: "POST", url: `/v1/console/disputes/${id}/submit`, headers: bearer("ops"), payload: { text } });
 
 describe("disputes", () => {
-  test("attach links a buyer-opened dispute to the Witness capture it is against", async () => {
+  test("attach links a buyer-opened dispute to the Second Key capture it is against", async () => {
     const id = h.fake.openDispute(captureId);
     const r = await attach(id);
     expect(r.statusCode).toBe(201);
@@ -55,7 +55,7 @@ describe("disputes", () => {
     expect(list.filter((x: any) => x.id === id)).toHaveLength(1);
   });
 
-  test("a dispute against a capture Witness didn't make for this tenant is refused", async () => {
+  test("a dispute against a capture Second Key didn't make for this tenant is refused", async () => {
     h.fake.captures.set("CAP-FOREIGN", { id: "CAP-FOREIGN", authId: "AUTH-X", status: "COMPLETED", currency: "USD", value: "10.00" } as any);
     expect((await attach(h.fake.openDispute("CAP-FOREIGN"))).statusCode).toBe(422);
     expect((await attach(h.fake.openDispute(captureId), "otherOps")).statusCode).toBe(422);

@@ -1,4 +1,4 @@
-// The Witness capture gate: deterministic policy checks, a cart digest that binds
+// The Second Key capture gate: deterministic policy checks, a cart digest that binds
 // an approval to one exact cart, and the three-way match against PayPal's order.
 // No AI here on purpose: the money boundary must work even if every model is wrong.
 
@@ -96,7 +96,7 @@ export function cartFromPayPalOrder(order) {
 }
 
 /**
- * Three-way match: what Witness approved vs what PayPal actually authorized.
+ * Three-way match: what Second Key approved vs what PayPal actually authorized.
  * Returns a list of human-readable differences; empty means an exact match.
  */
 export function threeWayMatch(approval, paypalOrder) {
@@ -117,7 +117,7 @@ export function threeWayMatch(approval, paypalOrder) {
     }
   }
   for (const sku of authorized.keys()) {
-    if (!approved.has(sku)) diffs.push(`unapproved: PayPal's order contains SKU ${sku}, which Witness never approved`);
+    if (!approved.has(sku)) diffs.push(`unapproved: PayPal's order contains SKU ${sku}, which Second Key never approved`);
   }
   if (cartDigest(actual) !== approval.cartDigest && diffs.length === 0) diffs.push("cart digest differs");
   return diffs;
@@ -143,7 +143,7 @@ export function approve(policy, cart, evaluation) {
  * amount PayPal authorized. Returns the capture amount, or throws.
  */
 export function assertCapturable(approval, paypalOrder) {
-  if (!approval) throw new GateRefusal(["no Witness approval exists for this order"]);
+  if (!approval) throw new GateRefusal(["no Second Key approval exists for this order"]);
   const diffs = threeWayMatch(approval, paypalOrder);
   if (diffs.length) throw new GateRefusal(diffs);
   return { currency_code: approval.currency, value: approval.amount };

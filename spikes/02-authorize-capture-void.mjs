@@ -1,6 +1,6 @@
-// Spike 02 (human present): prove the money lifecycle Witness depends on.
-//   Order A: buyer approves -> authorize -> Witness approves -> capture   => COMPLETED
-//   Order B: buyer approves -> authorize -> Witness refuses  -> void      => VOIDED
+// Spike 02 (human present): prove the money lifecycle Second Key depends on.
+//   Order A: buyer approves -> authorize -> Second Key approves -> capture   => COMPLETED
+//   Order B: buyer approves -> authorize -> Second Key refuses  -> void      => VOIDED
 //   Then try to capture B anyway and confirm PayPal itself refuses.
 
 import { createHash } from "node:crypto";

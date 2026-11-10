@@ -2,7 +2,7 @@
 // built-in agents speak a Responses-style protocol; this translates one turn to Anthropic's
 // Messages API with the approved Haiku model and back. The key stays on the server; the console
 // session gates access; a per-process spend cap bounds cost. The agent sees only the console's
-// ledger data that AG Studio passes in. It has no route to Witness's API or to PayPal.
+// ledger data that AG Studio passes in. It has no route to Second Key's API or to PayPal.
 import "server-only";
 
 /** Must equal DEFAULT_MODEL in packages/ai/src/models.ts (asserted by a test). */

@@ -26,7 +26,7 @@ const recipient = process.env.SK_RECIPIENT_EMAIL ?? null;
 
 const db = new pg.Client({ connectionString: process.env.SK_DATABASE_URL ?? "postgres://witness:witness-dev-only@127.0.0.1:54330/witness" });
 await db.connect();
-const keys = JSON.parse(readFileSync(join(ROOT, ".witness", "dev-keys.json"), "utf8"));
+const keys = JSON.parse(readFileSync(join(ROOT, ".secondkey", "dev-keys.json"), "utf8"));
 const vaultId = (await db.query("select vault_id from shoppers where id = $1", [keys.demo_shopper_id])).rows[0].vault_id as string;
 await db.end();
 

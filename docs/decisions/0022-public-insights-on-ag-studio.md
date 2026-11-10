@@ -4,7 +4,7 @@ Status: accepted (2026-11-02). Amends ADR-0015 §4 (the Studio agent required a 
 
 ## Problem
 
-The AG Studio dashboard and its Studio agent lived only in the password-gated `/console`, under the old Witness brand. The public Desk used AG Grid Community alone, so anyone without the password never saw AG Studio, its custom widget or the agent.
+The AG Studio dashboard and its Studio agent lived only in the password-gated `/console`. The public Desk used AG Grid Community alone, so anyone without the password never saw AG Studio, its custom widget or the agent.
 
 ## Decision
 

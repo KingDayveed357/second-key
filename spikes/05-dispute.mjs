@@ -1,5 +1,5 @@
-// Spike 05: can a dispute be opened on a Witness-captured order, defended with
-// Witness's record as evidence, and settled in the sandbox?
+// Spike 05: can a dispute be opened on a Second Key-captured order, defended with
+// Second Key's record as evidence, and settled in the sandbox?
 //
 //   node spikes/05-dispute.mjs create            # uses spikes/out/record-order-A.json
 //   node spikes/05-dispute.mjs create --buyer-txn <id> --payer-id <id> --amount 20
@@ -71,9 +71,9 @@ async function list() {
 
 function evidenceNotes() {
   const rec = loadJson("record-order-A.json");
-  if (!rec) return "Witness evidence record: see attached intent and cart verification.";
+  if (!rec) return "Second Key evidence record: see attached intent and cart verification.";
   return [
-    "Witness evidence record.",
+    "Second Key evidence record.",
     `Buyer's recorded instruction: "${rec.intent}" (SHA-256 intent digest ${rec.intentDigest}, also carried in the order's custom_id; not cryptographically signed).`,
     `Cart verified against that instruction before capture; approved cart digest ${rec.cartDigest}.`,
     `PayPal order ${rec.orderId}, authorization ${rec.authorizationId}, capture ${rec.captureId}, ${rec.amount.value} ${rec.amount.currency_code}.`,
@@ -96,7 +96,7 @@ async function next(id) {
 
   if (d.status === "RESOLVED") {
     const won = /SELLER/.test(d.dispute_outcome?.outcome_code ?? "");
-    console.log(`\nGATE 4 (dispute defended with Witness evidence): ${won && state.evidenceProvided ? "PASS" : "CHECK"}`);
+    console.log(`\nGATE 4 (dispute defended with Second Key evidence): ${won && state.evidenceProvided ? "PASS" : "CHECK"}`);
   } else if (hasLink(d, "provide_evidence")) {
     await step("provide-evidence", "provide-evidence", { form: { evidences: [{ evidence_type: "OTHER", notes: evidenceNotes() }] } });
     state.evidenceProvided = true;
